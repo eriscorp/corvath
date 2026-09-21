@@ -156,6 +156,20 @@ function createWindow(): void {
   mainWindow.on('maximize', () => mainWindow?.webContents.send('window:maximizeChange', true))
   mainWindow.on('unmaximize', () => mainWindow?.webContents.send('window:maximizeChange', false))
 
+  // A window keeps its native background — Electron's default white, because no
+  // `backgroundColor` can be right for a theme set that has light entries —
+  // while the renderer's compositor tears down. That background is what paints
+  // for the last frame or two before the window leaves the screen, which reads
+  // as a white flash on quit (HTOO-456). Hiding the window takes it off screen
+  // first: `close` runs before the teardown, and the close itself proceeds as
+  // normal after this returns. Corvath has no close guard, so one hide here
+  // covers every close path — title-bar button, Alt+F4, taskbar, `app.quit()` —
+  // because they all raise `close`.
+  const win = mainWindow
+  win.on('close', () => {
+    win.hide()
+  })
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {

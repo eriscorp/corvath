@@ -114,6 +114,13 @@ keeps all of your data on your own machine.
   an 84-pixel logo. The packaged archive now holds about 950 files, down from
   about 38,700. The images in it total 266 KB, down from 4.7 MB.
 
+### Fixed
+
+- **No white flash when you close Corvath.** The window left the screen with a
+  white frame or two at the end. Corvath now hides the window before it closes
+  it, on every route: the close button, Alt+F4, the taskbar, and quit. The
+  splash screen also no longer shows a white frame before its first paint.
+
 ### Security
 
 - **Corvath refuses to move its window away from its own pages.** It opens a link

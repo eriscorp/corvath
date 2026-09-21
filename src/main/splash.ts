@@ -26,6 +26,12 @@ export function createSplashWindow(): BrowserWindow {
     center: true,
     skipTaskbar: true,
     show: false,
+    // Chromium's default native background is opaque white, and `transparent:
+    // true` alone does not change it — a transparent window can still paint
+    // white for a frame before its first real paint. Only an explicit fully
+    // transparent `backgroundColor` removes it. Same root cause as the close
+    // flash in index.ts (HTOO-456), at the other end of the window's life.
+    backgroundColor: '#00000000',
     // The splash has no IPC needs; keep it isolated with no preload.
     webPreferences: {
       contextIsolation: true,
