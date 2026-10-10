@@ -53,7 +53,7 @@ describe('constants stay pinned to @electron/fuses', () => {
 
 describe('electron-builder.yml still asks for the fuses we verify', () => {
   // The config-shape half of HTOO-403: cheap, needs no build, and runs on every
-  // `npm run validate` through the pre-push hook. Deleting a fuse from the YAML
+  // `npm run validate`. Deleting a fuse from the YAML
   // reds the suite here; the packaged-binary read in release.yml is the other
   // half and can only run where an artifact exists.
   const yml = readFileSync(join(repoRoot, 'electron-builder.yml'), 'utf8')

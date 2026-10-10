@@ -14,7 +14,7 @@ npm run e2e:only   # runs specs against the existing out/ build
 
 **Not local-only.** `ci.yml` runs an `e2e` job on `windows-latest` — a Windows runner has a
 desktop session, so no xvfb wrapper is needed. Note `ci.yml` is `workflow_dispatch` only
-(HTOO-390), so the everyday gate is `npm run validate` through `.githooks/pre-push`; run
+(HTOO-390), so the everyday gate is `npm run validate`, run by hand before a push; run
 `npm run e2e` by hand before anything touching boot, settings, themes or the draw tab.
 
 ## What's here
