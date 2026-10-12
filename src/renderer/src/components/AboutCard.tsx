@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { Box, Button, Link, Stack, Typography } from '@mui/material'
+import { Box, Button, Link, Paper, Stack, Typography } from '@mui/material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined'
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined'
 import BugReportOutlinedIcon from '@mui/icons-material/BugReportOutlined'
-import { cardHeadingSx } from '../lib/settingsCardSx'
+import { cardHeadingSx, cardSx } from '../lib/settingsCardSx'
 // 128px WebP for a 48px render — 2x DPR with headroom, per R-002's rule of
 // render size x DPR rather than a fixed number. The title bar's 64px asset is
 // sized for its own 22px render and would be soft here.
@@ -15,6 +15,12 @@ import WhatsNewDialog from './WhatsNewDialog'
 
 /**
  * What corvath is, which build you are running, and where it keeps your files.
+ *
+ * The house About card (midir's form): the card owns its own `Paper` and its
+ * heading, so the Settings page places it like any other card and does not wrap
+ * it. The heading uses `cardHeadingSx`, the same as the other Settings cards, so
+ * the page reads as one set. Midir's `text.button` heading colour is not taken
+ * here; `settingsCardSx.ts` says why it fails on Mundanes.
  *
  * About and What's New keep their open state LOCAL: each has exactly one opener.
  * **Report an issue is the exception**, and its flag lives on `reportStore`
@@ -43,10 +49,10 @@ export default function AboutCard(): ReactElement {
   }, [])
 
   return (
-    <>
+    <Paper sx={cardSx} data-testid="about-card">
       <Typography sx={cardHeadingSx}>About</Typography>
 
-      <Stack direction="row" sx={{ alignItems: 'center', gap: 2, mb: 2, mt: 1 }}>
+      <Stack direction="row" sx={{ alignItems: 'center', gap: 2, my: 2 }}>
         <Box
           component="img"
           src={appIcon}
@@ -63,7 +69,8 @@ export default function AboutCard(): ReactElement {
           </Typography>
           {/* Both go through setWindowOpenHandler -> isSafeExternalUrl ->
               shell.openExternal, so they open in the system browser rather than
-              navigating the app. */}
+              navigating the app. The second link is corvath's own repository,
+              which is public (eriscorp/corvath), as midir links its own. */}
           <Stack direction="row" sx={{ gap: 2, mt: 0.5 }}>
             <Link
               href="https://www.hybrasyl.com"
@@ -74,12 +81,12 @@ export default function AboutCard(): ReactElement {
               hybrasyl.com
             </Link>
             <Link
-              href="https://github.com/hybrasyl"
+              href="https://github.com/eriscorp/corvath"
               target="_blank"
               rel="noopener noreferrer"
               variant="body2"
             >
-              github.com/hybrasyl
+              github.com/eriscorp/corvath
             </Link>
           </Stack>
         </Box>
@@ -90,6 +97,7 @@ export default function AboutCard(): ReactElement {
           variant="outlined"
           startIcon={<InfoOutlinedIcon />}
           onClick={() => setAboutOpen(true)}
+          data-testid="about-corvath"
         >
           About Corvath…
         </Button>
@@ -97,6 +105,7 @@ export default function AboutCard(): ReactElement {
           variant="outlined"
           startIcon={<NewReleasesOutlinedIcon />}
           onClick={() => setWhatsNewOpen(true)}
+          data-testid="whats-new"
         >
           What&apos;s new…
         </Button>
@@ -111,9 +120,8 @@ export default function AboutCard(): ReactElement {
           Reveal data folder
         </Button>
         {/* Reports go to the shared public intake (hybrasyl/cernunnos), not to
-            corvath's own repository: a prefilled issues/new URL needs the
-            reporter to have access to the target repo, and this one is
-            personal. The app: label is what makes it triageable. */}
+            corvath's own repository: one intake for every house app, and the
+            app: label is what makes a report triageable by app. */}
         <Button
           variant="outlined"
           startIcon={<BugReportOutlinedIcon />}
@@ -126,6 +134,6 @@ export default function AboutCard(): ReactElement {
 
       <AboutDialog open={aboutOpen} version={version} onClose={() => setAboutOpen(false)} />
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
-    </>
+    </Paper>
   )
 }

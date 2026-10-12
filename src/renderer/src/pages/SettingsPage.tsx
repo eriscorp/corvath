@@ -18,7 +18,9 @@ interface SettingsPageProps {
  *
  * The house shape (balor / taliesin / oghma) is a scrollable responsive grid of
  * `<Paper>` cards, one per concern — not a tab strip. A later WP adds cards to
- * this grid rather than rebuilding the shell.
+ * this grid rather than rebuilding the shell. The page wraps Appearance and Draw
+ * defaults in a `Paper` with `cardSx`. The About card brings its own, with the
+ * same `cardSx`, as midir's does, so all three cards size alike.
  *
  * Appearance, Draw defaults and About. The three draw defaults were the
  * candidates HTOO-408 left open and Sabrael took on 2026-08-15; each is a choice
@@ -58,9 +60,8 @@ export default function SettingsPage({
           <DrawDefaultsCard decks={decks} layouts={layouts} />
         </Paper>
 
-        <Paper sx={cardSx}>
-          <AboutCard />
-        </Paper>
+        {/* Last in the grid, and not wrapped: the house About card owns its Paper. */}
+        <AboutCard />
       </Box>
     </Box>
   )

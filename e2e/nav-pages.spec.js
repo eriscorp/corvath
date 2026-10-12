@@ -105,7 +105,14 @@ test.describe('Settings page', () => {
     // The About card resolves a real version over IPC rather than rendering the
     // placeholder forever — which is what a missing app:getVersion looks like.
     await expect(page.getByTestId('about-version')).toContainText(/Version \d+\.\d+\.\d+/)
-    await expect(page.getByTestId('reveal-settings')).toBeVisible()
+
+    // The house About card brings its own Paper; the page does not wrap it. So
+    // the card is a Paper, and its four buttons are inside it.
+    const card = page.getByTestId('about-card')
+    await expect(card).toHaveClass(/MuiPaper-root/)
+    for (const id of ['about-corvath', 'whats-new', 'reveal-settings', 'report-issue']) {
+      await expect(card.getByTestId(id), id).toBeVisible()
+    }
   })
 
   test('builds a real scrubbed diagnostics block for a report', async () => {
