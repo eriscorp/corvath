@@ -1,0 +1,36 @@
+# Line endings are normalized to LF in the repository and checked out as LF.
+#
+# Without this, a file committed with CRLF is rewritten IN FULL the next time
+# anyone runs `npm run format` — prettier normalizes to LF, both by its own
+# default and because `.editorconfig` declares `end_of_line = lf`. The diff is
+# the whole file rather than the change, so it lands as unrelated churn inside
+# whatever PR happens to be open. Balor hit exactly that in WP3, which is where
+# this came from. Copied from hyb-electron-template (HTOO-236).
+* text=auto eol=lf
+
+# Explicitly binary, so git never tries to translate them and never offers them
+# as a text diff. The list states the format; git's own guess reads only the
+# first 8000 bytes for a NUL. Corvath tracks png, bmp, webp and jpg today (the
+# icons, the deck art under bundled/ and the renderer assets).
+*.png binary
+*.bmp binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.gz binary
+*.pdf binary
+# A deck export is a zip (deckPackage.ts). None is tracked today; a test
+# fixture that adds one must not be normalized.
+*.corvathdeck binary
+
+# Generated. Marking it linguist-generated keeps it out of PR diffs by default;
+# the lockfile is still tracked and still reviewed when it actually matters.
+package-lock.json -diff linguist-generated
