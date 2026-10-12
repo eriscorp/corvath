@@ -11,6 +11,8 @@ import { useReportStore } from '@renderer/store/reportStore'
 import { NAV_ITEMS } from '@renderer/components/NavBar'
 import AboutCard from '@renderer/components/AboutCard'
 import Readings from '@renderer/pages/Readings'
+import DeckBuilder from '@renderer/pages/DeckBuilder'
+import type { UseDecks } from '@renderer/hooks/useDecks'
 
 const READING: Reading = {
   id: 'r1',
@@ -180,6 +182,38 @@ describe('the owners take their requests on mount', () => {
     })
     expect(window.api.readings.export).toHaveBeenCalledOnce()
     expect(vi.mocked(window.api.readings.export).mock.calls[0][0]).toBe('corvath-readings')
+  })
+
+  it('the Readings page opens its own import dialog', async () => {
+    useMenuStore.getState().request('importReadings')
+    await act(async () => {
+      render(
+        <Readings
+          decks={[]}
+          layouts={[]}
+          selectedId={null}
+          onSelectId={() => undefined}
+          onGoToDraw={() => undefined}
+        />
+      )
+    })
+    expect(screen.getByRole('dialog')).toHaveTextContent(/import/i)
+    expect(useMenuStore.getState().pending.importReadings).toBeUndefined()
+  })
+
+  it('the Decks page runs its Import Deck button', async () => {
+    const importDeck = vi.fn(async () => ({ canceled: true }))
+    const api = {
+      decks: [],
+      loaded: true,
+      importDeck
+    } as unknown as UseDecks
+    useMenuStore.getState().request('importDeck')
+    await act(async () => {
+      render(<DeckBuilder api={api} />)
+    })
+    expect(importDeck).toHaveBeenCalledOnce()
+    expect(useMenuStore.getState().pending.importDeck).toBeUndefined()
   })
 })
 
