@@ -1,6 +1,6 @@
 import { _electron as electron, expect } from '@playwright/test'
 import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { dirname, join, resolve } from 'path'
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 
@@ -21,8 +21,9 @@ function seedStore(localAppData, filename, contents) {
 // Launch the BUILT app under Electron.
 //
 // %LOCALAPPDATA% is redirected to a throwaway temp dir because src/main/index.ts
-// derives its userData (settings.json) from %LOCALAPPDATA% at module load —
-// pointing it at a temp dir keeps every run hermetic and off the real profile.
+// derives its userData (settings.json) from %LOCALAPPDATA% at module load, on
+// every platform — pointing it at a temp dir keeps every run hermetic and off
+// the real profile. assertIsolated below fails the launch if it is not.
 // Pass an existing `localAppData` to reuse one dir across two launches
 // (persistence-across-relaunch tests).
 //
@@ -55,7 +56,22 @@ export async function launchApp({
   // out/main — both differing from a packaged build, which is the one thing
   // these specs exist to model. See the house E2E doc §3.5.
   const electronApp = await electron.launch({ args: ['.'], cwd: repoRoot, env })
+  await assertIsolated(electronApp, localAppData)
   return { electronApp, localAppData }
+}
+
+// Fail the launch when the app's userData is not under the temp dir (HTOO-543).
+// This is the alarm, not the fix: it reads userData AFTER the launch, so the app
+// has already made its profile folder wherever userData points. It stops a SPEC
+// from saving into the real profile. The `localAppData` line in
+// src/main/index.ts is what keeps the launch itself off the real profile.
+export async function assertIsolated(electronApp, localAppData) {
+  const userData = await electronApp.evaluate(({ app }) => app.getPath('userData'))
+  const expected = join(localAppData, ...USERDATA_SUBPATH)
+  if (resolve(userData).toLowerCase() !== resolve(expected).toLowerCase()) {
+    await electronApp.close().catch(() => {})
+    throw new Error(`e2e isolation failed: userData is ${userData}, expected ${expected}`)
+  }
 }
 
 // Find the real main window and wait until it's actually shown. The app pops a

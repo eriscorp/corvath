@@ -26,12 +26,19 @@ import {
 // lives under %LOCALAPPDATA%/Erisco/Corvath. On Windows Electron's appData path
 // is the ROAMING dir, so we resolve %LOCALAPPDATA% ourselves; macOS/Linux have no
 // roaming concept and appData is already local (mirrors hyb-electron-template).
+//
+// %LOCALAPPDATA% is honoured on EVERY platform (HTOO-543). Nothing sets it on
+// macOS or Linux except the e2e helper, which points it at a temp dir. Read on
+// Windows only, that redirect did nothing elsewhere: on macOS no variable moves
+// appData, so every spec ran against the real profile and a spec that saves
+// wrote it. Corvath has no roaming migration to guard.
 const COMPANY = 'Erisco'
 const APP_DIR = 'Corvath'
 const localAppData =
-  process.platform === 'win32'
-    ? (process.env.LOCALAPPDATA ?? join(app.getPath('home'), 'AppData', 'Local'))
-    : app.getPath('appData')
+  process.env.LOCALAPPDATA ??
+  (process.platform === 'win32'
+    ? join(app.getPath('home'), 'AppData', 'Local')
+    : app.getPath('appData'))
 
 const dataPath = join(localAppData, COMPANY, APP_DIR)
 app.setPath('userData', dataPath)
