@@ -230,7 +230,16 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    frame: false,
+    // macOS keeps its native stoplight buttons, inset into corvath's own title
+    // bar; the renderer's TitleBar then draws no buttons, logo or name there.
+    // `y: 10` centres the lights in a 36 px bar. Corvath's bar is 40 px (the
+    // Toolbar's minHeight; the AppBar's 1 px bottom border is below it), so the
+    // lights go 2 px lower, to `y: 12`. Only a Mac shows whether that is right.
+    // Windows and Linux stay frameless with the renderer's buttons
+    // (macos-chrome.md §2 in the document repo).
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 12, y: 12 } }
+      : { frame: false }),
     icon,
     title: 'Corvath',
     webPreferences: {

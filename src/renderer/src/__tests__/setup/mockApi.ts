@@ -12,6 +12,8 @@ import type { Settings, TarotApi } from '../../../../shared/types'
  */
 export function createMockApi(): TarotApi {
   return {
+    // Windows, as the app ships first. A macOS test sets 'darwin' itself.
+    platform: 'win32',
     readings: {
       getAll: vi.fn(async () => []),
       save: vi.fn(async () => undefined),

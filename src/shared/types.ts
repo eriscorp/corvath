@@ -235,6 +235,10 @@ export interface ReadingExportResult {
 
 /** The surface exposed to the renderer on `window.api`. */
 export interface TarotApi {
+  /** `process.platform` from the preload. The renderer reads it, never the
+   *  Node global (a sandboxed renderer has none). */
+  platform: string
+
   readings: {
     getAll(): Promise<Reading[]>
     save(readings: Reading[]): Promise<void>

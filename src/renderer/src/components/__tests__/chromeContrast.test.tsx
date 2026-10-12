@@ -10,6 +10,9 @@ import TitleBar from '../TitleBar'
 const THEME_NAMES = Object.keys(themesByName) as ThemeName[]
 
 function renderBar(name: ThemeName): void {
+  // The Windows bar, with its wordmark and buttons. On macOS the bar draws
+  // neither (TitleBar.test.tsx), so there is nothing there to measure.
+  window.api.platform = 'win32'
   render(
     <ThemeProvider theme={themesByName[name]}>
       <TitleBar themeName={name} />

@@ -16,6 +16,9 @@ import type {
 import type { UpdateCheckResult } from '../shared/updateVersion'
 
 const api: TarotApi = {
+  // A sandboxed preload has `process.platform`; the renderer has no `process`.
+  platform: process.platform,
+
   readings: {
     getAll: (): Promise<Reading[]> => ipcRenderer.invoke('readings:getAll'),
     save: (readings: Reading[]): Promise<void> => ipcRenderer.invoke('readings:save', readings),

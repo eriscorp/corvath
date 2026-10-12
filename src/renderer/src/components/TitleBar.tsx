@@ -50,6 +50,12 @@ export default function TitleBar({ themeName }: TitleBarProps) {
     }
   }
 
+  // macOS draws its own stoplight buttons, inset at the bar's left edge (main's
+  // `titleBarStyle: 'hiddenInset'`), and a Mac title bar carries no app name or
+  // logo. There the bar is an empty drag region; a double-click on it zooms the
+  // window natively (macos-chrome.md §2 in the document repo).
+  const isMac = window.api.platform === 'darwin'
+
   return (
     <AppBar
       position="static"
@@ -61,62 +67,85 @@ export default function TitleBar({ themeName }: TitleBarProps) {
         color: 'secondary.contrastText'
       }}
     >
-      <Toolbar data-testid="title-bar" variant="dense" sx={{ minHeight: 40, px: 1.5 }}>
-        <Box
-          component="img"
-          src={logoUrl}
-          alt=""
-          sx={{ width: 22, height: 22, mr: 1.5, borderRadius: '4px', display: 'block' }}
-        />
-        <Typography
-          variant="h6"
-          sx={{
-            fontSize: '1rem',
-            letterSpacing: '0.14em',
-            color: 'secondary.contrastText',
-            textShadow: engraved ? ENGRAVE : 'none'
-          }}
-        >
-          Corvath
-        </Typography>
+      <Toolbar
+        data-testid="title-bar"
+        variant="dense"
+        // The Toolbar's gutters are a media query (24 px from `sm` up), and an
+        // `sx` padding without a breakpoint does not override it: the old
+        // `px: 1.5` never applied, and Windows rendered 24 px a side (measured in
+        // the built app). So `disableGutters`, and both paddings set here: 24 px
+        // (3) keeps Windows as it was, and 78 px on macOS clears the stoplights,
+        // which end near x = 66.
+        disableGutters
+        sx={{ minHeight: 40, pr: 3, pl: isMac ? '78px' : 3 }}
+      >
+        {!isMac && (
+          <>
+            <Box
+              component="img"
+              src={logoUrl}
+              alt=""
+              sx={{ width: 22, height: 22, mr: 1.5, borderRadius: '4px', display: 'block' }}
+            />
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: '1rem',
+                letterSpacing: '0.14em',
+                color: 'secondary.contrastText',
+                textShadow: engraved ? ENGRAVE : 'none'
+              }}
+            >
+              Corvath
+            </Typography>
+          </>
+        )}
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Tooltip title="Minimize">
-          <IconButton
-            size="small"
-            sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
-            aria-label="minimize"
-            onClick={() => window.api.window.minimize()}
-          >
-            <MinimizeIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={maximized ? 'Restore' : 'Maximize'}>
-          <IconButton
-            size="small"
-            sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
-            aria-label="maximize"
-            onClick={() => window.api.window.toggleMaximize()}
-          >
-            {maximized ? <FilterNoneIcon fontSize="small" /> : <CropSquareIcon fontSize="small" />}
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Close">
-          <IconButton
-            size="small"
-            sx={{
-              ...noDrag,
-              ...iconSx,
-              color: 'secondary.contrastText',
-              '&:hover': { bgcolor: 'error.main', color: 'common.white' }
-            }}
-            aria-label="close"
-            onClick={() => window.api.window.close()}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {!isMac && (
+          <>
+            <Tooltip title="Minimize">
+              <IconButton
+                size="small"
+                sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
+                aria-label="minimize"
+                onClick={() => window.api.window.minimize()}
+              >
+                <MinimizeIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={maximized ? 'Restore' : 'Maximize'}>
+              <IconButton
+                size="small"
+                sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
+                aria-label="maximize"
+                onClick={() => window.api.window.toggleMaximize()}
+              >
+                {maximized ? (
+                  <FilterNoneIcon fontSize="small" />
+                ) : (
+                  <CropSquareIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Close">
+              <IconButton
+                size="small"
+                sx={{
+                  ...noDrag,
+                  ...iconSx,
+                  color: 'secondary.contrastText',
+                  '&:hover': { bgcolor: 'error.main', color: 'common.white' }
+                }}
+                aria-label="close"
+                onClick={() => window.api.window.close()}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   )
