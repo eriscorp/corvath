@@ -35,7 +35,8 @@ npm run e2e:only   # runs specs against the existing out/ build
 
 - `app-root` (+ its `data-theme`) and `app-hydrating` — `src/renderer/src/App.tsx`.
 - `<view>-page` on each page (the `testId` in `NAV_ITEMS`, `src/renderer/src/components/NavBar.tsx`) and `error-boundary-fallback` — `src/renderer/src/components/ErrorBoundary.tsx`.
-- `title-bar` and `theme-select` — `src/renderer/src/components/TitleBar.tsx`.
+- `title-bar` — `src/renderer/src/components/TitleBar.tsx`.
+- `theme-select` (the radio group) and `theme-option-<name>` (one card per theme, with `aria-checked`) — `src/renderer/src/components/ThemePicker.tsx`.
 - `draw-slot` (+ `data-slot-index` / `data-flipped` / `data-card-name`), `fan-card` (+ `data-fan-index` / `data-spent`), `fan-row` (+ `data-row-step`) and `draw-mode-deal` / `draw-mode-fan` — `src/renderer/src/pages/Draw.tsx`. The tray and fan are otherwise anonymous `div`s whose state is expressed only as a transform or an opacity.
 
 ## Gotcha specific to the fan

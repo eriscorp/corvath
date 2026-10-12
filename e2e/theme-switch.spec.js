@@ -2,20 +2,13 @@ import { test, expect } from '@playwright/test'
 import { launchApp, getMainWindow } from './helpers.js'
 
 // Cycle every theme and assert each one actually renders. A theme is wired
-// through four places (the ThemeName union, main's THEME_NAMES, the themes map,
-// and THEME_OPTIONS) and a miss in any of them fails quietly — the picker still
-// shows the entry, but the theme silently falls back. This is the cheapest way
-// to catch that, and it also exercises PLAIN_CHROME_THEMES on the two corporate
-// themes.
+// through four places (the ThemeName union, THEME_NAMES in shared/types, main's
+// THEME_NAMES, and the themesByName map) and a miss in any of them fails quietly
+// — the picker still shows the entry, but the theme silently falls back. This is
+// the cheapest way to catch that, and it also exercises the plain and the
+// engraved title bars.
 
-const THEMES = [
-  { value: 'hybrasyl', label: 'Hybrasyl' },
-  { value: 'danaan', label: 'Danaan' },
-  { value: 'chadul', label: 'Chadul' },
-  { value: 'grinneal', label: 'Grinneal' },
-  { value: 'mundanes', label: 'Mundanes' },
-  { value: 'dubhaimid', label: 'Dubhaimid' }
-]
+const THEMES = ['hybrasyl', 'danaan', 'chadul', 'grinneal', 'mundanes', 'dubhaimid']
 
 test.describe('Themes', () => {
   let electronApp
@@ -37,11 +30,13 @@ test.describe('Themes', () => {
     await page.getByRole('tab', { name: 'Settings', exact: true }).click()
 
     for (const theme of THEMES) {
-      await page.getByTestId('theme-select').click()
-      await page.getByRole('option', { name: theme.label, exact: true }).click()
+      // The picker is a radio group of preview cards, one per theme.
+      const option = page.getByTestId('theme-select').getByTestId(`theme-option-${theme}`)
+      await option.click()
+      await expect(option).toHaveAttribute('aria-checked', 'true')
 
       const root = page.getByTestId('app-root')
-      await expect(root).toHaveAttribute('data-theme', theme.value)
+      await expect(root).toHaveAttribute('data-theme', theme)
 
       backgrounds.add(await root.evaluate((el) => getComputedStyle(el).backgroundColor))
     }

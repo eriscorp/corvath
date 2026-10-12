@@ -33,10 +33,10 @@ Then `GET http://127.0.0.1:9222/json/list`, take the `page` target whose url is 
 
 ## Selectors that work
 
-There are a few test ids (added for the e2e harness, which waits on `app-root`): `app-root` (carries `data-theme`), `app-hydrating`, `title-bar`, `theme-select`. Everything else is MUI markup; these hold up:
+There are a few test ids (added for the e2e harness, which waits on `app-root`): `app-root` (carries `data-theme`), `app-hydrating`, `title-bar`, `theme-select` (the theme picker's radio group on Settings) and `theme-option-<name>` (one card per theme; click it to switch). Everything else is MUI markup; these hold up:
 
 - Tabs: `button[role="tab"]` — order is Readings, Draw, Decks, Layouts.
-- Selects: `.MuiSelect-select` (click to open, then `li[role="option"]`). Note the theme picker in the title bar is also a `.MuiSelect-select`, so the form's selects are not index 0.
+- Selects: `.MuiSelect-select` (click to open, then `li[role="option"]`).
 - Sidebar lists: `.MuiListItemButton-root`.
 - Cards (`DrawCard`): a `div` with `perspective: 700px`. Width distinguishes them — 150px in the slot tray, 88px in the fan pile.
   - `spent` (already picked / pinned) renders as `opacity: 0.35`.

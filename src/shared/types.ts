@@ -4,6 +4,17 @@ export type Orientation = 'upright' | 'reversed'
 
 export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
 
+/** The six themes, in the order the theme picker shows them. Main validates a
+ *  stored theme against its own copy in `main/schemas`. */
+export const THEME_NAMES: ThemeName[] = [
+  'hybrasyl',
+  'danaan',
+  'chadul',
+  'grinneal',
+  'mundanes',
+  'dubhaimid'
+]
+
 /**
  * The "corporate/plain" themes: a flat navy bar with white text and no edge.
  * `chromeContrast.test.tsx` uses it to tell them from the decorated themes.

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { launchApp, getMainWindow } from './helpers.js'
 
-// The settings round-trip end to end: change the theme in the title bar, wait
+// The settings round-trip end to end: change the theme on Settings, wait
 // for the debounced save to reach disk, relaunch against the same userData dir,
 // and assert it hydrated. This spans renderer store → 200ms-debounced IPC save →
 // atomic disk write → next launch's load() → hydrate() → rendered UI — the whole
@@ -23,8 +23,7 @@ test.describe('Settings persist across a restart', () => {
     // (HTOO-408).
     await page.getByRole('tab', { name: 'Settings', exact: true }).click()
     // Pick a non-default theme (default is hybrasyl).
-    await page.getByTestId('theme-select').click()
-    await page.getByRole('option', { name: 'Mundanes', exact: true }).click()
+    await page.getByTestId('theme-option-mundanes').click()
 
     // Wait until the write has actually landed on disk — settings.load() reads
     // settings.json back through the main process, so this confirms persistence
@@ -46,5 +45,8 @@ test.describe('Settings persist across a restart', () => {
 
     // …and it's actually applied in the hydrated UI, with no default-theme flash.
     await expect(page.getByTestId('app-root')).toHaveAttribute('data-theme', 'mundanes')
+    // The picker shows it too: its Mundanes card is the checked one.
+    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await expect(page.getByTestId('theme-option-mundanes')).toHaveAttribute('aria-checked', 'true')
   })
 })

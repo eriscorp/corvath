@@ -96,11 +96,16 @@ test.describe('Settings page', () => {
     const page = await getMainWindow(electronApp)
     await page.getByRole('tab', { name: 'Settings', exact: true }).click()
 
-    // The picker moved off the title bar; it must be reachable BY ROLE here,
-    // which is only true because ThemePicker wires a real labelId. An MUI Select
-    // with no linked label has no accessible name at all.
-    await expect(page.getByRole('combobox', { name: 'Theme' })).toBeVisible()
+    // The picker moved off the title bar; it must be reachable BY ROLE here.
+    // It is the house picker, a radio group with an accessible name, one radio
+    // per theme, and only the active theme checked. It sits in the Appearance
+    // card, which owns its Paper as the About card does.
+    const picker = page.getByRole('radiogroup', { name: 'Theme' })
+    await expect(picker).toBeVisible()
+    await expect(picker.getByRole('radio')).toHaveCount(6)
+    await expect(picker.getByRole('radio', { checked: true })).toHaveAccessibleName('Hybrasyl')
     await expect(page.getByTestId('title-bar').getByTestId('theme-select')).toHaveCount(0)
+    await expect(page.getByTestId('appearance-card').getByTestId('theme-select')).toHaveCount(1)
 
     // The About card resolves a real version over IPC rather than rendering the
     // placeholder forever — which is what a missing app:getVersion looks like.
@@ -112,6 +117,10 @@ test.describe('Settings page', () => {
     await expect(card).toHaveClass(/MuiPaper-root/)
     for (const id of ['about-corvath', 'whats-new', 'reveal-settings', 'report-issue']) {
       await expect(card.getByTestId(id), id).toBeVisible()
+    }
+    // The other two cards own their Papers too, so the page places all three bare.
+    for (const id of ['appearance-card', 'draw-defaults-card']) {
+      await expect(page.getByTestId(id), id).toHaveClass(/MuiPaper-root/)
     }
   })
 
