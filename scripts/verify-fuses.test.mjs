@@ -49,6 +49,15 @@ describe('constants stay pinned to @electron/fuses', () => {
     expect(FUSE_STATE.REMOVED).toBe(constants.FuseState.REMOVED)
     expect(FUSE_STATE.INHERIT).toBe(constants.FuseState.INHERIT)
   })
+
+  it('names each asserted fuse at the position the package gives it', () => {
+    // The wire is unlabelled bytes, so a position that drifts silently asserts
+    // the wrong fuse. This ties our indices to upstream's FuseV1Options.
+    const { FuseV1Options } = require('@electron/fuses')
+    for (const fuse of EXPECTED) {
+      expect(FuseV1Options[fuse.index]).toBe(fuse.name)
+    }
+  })
 })
 
 describe('electron-builder.yml still asks for the fuses we verify', () => {
@@ -75,6 +84,8 @@ describe('electron-builder.yml still asks for the fuses we verify', () => {
     ['enableNodeCliInspectArguments', false],
     ['enableNodeOptionsEnvironmentVariable', false],
     ['onlyLoadAppFromAsar', true],
+    // HTOO-381: required, not only allowed. Removing it from the YAML reds here.
+    ['enableEmbeddedAsarIntegrityValidation', true],
     // Not a fuse and not on the wire — it re-signs the mac binary after
     // flipping, which arm64 requires. Pinned here because nothing else can.
     ['resetAdHocDarwinSignature', true]
@@ -129,6 +140,21 @@ describe('checkWires', () => {
     ])
   })
 
+  it('names every wrong fuse when the block is dropped from the config', () => {
+    // With no `electronFuses`, the binary ships Electron's defaults: RunAsNode,
+    // NodeOptions and NodeCliInspect on, EmbeddedAsarIntegrityValidation and
+    // OnlyLoadAppFromAsar off. All five are named, not only the first.
+    const states = healthyStates()
+    states[0] = FUSE_STATE.ENABLE
+    states[2] = FUSE_STATE.ENABLE
+    states[3] = FUSE_STATE.ENABLE
+    states[4] = FUSE_STATE.DISABLE
+    states[5] = FUSE_STATE.DISABLE
+    const problems = checkWires(decodeFuseWires(fakeBinary(states)))
+    expect(problems).toHaveLength(5)
+    expect(problems).toContain('EnableEmbeddedAsarIntegrityValidation is DISABLE, expected ENABLE')
+  })
+
   it('names the fuse that is wrong', () => {
     const states = healthyStates()
     states[0] = FUSE_STATE.ENABLE // RunAsNode back on
@@ -156,6 +182,15 @@ describe('checkWires', () => {
   it('reports a fuse that runs off the end of a short wire', () => {
     const problems = checkWires(decodeFuseWires(fakeBinary([FUSE_STATE.DISABLE])))
     expect(problems.some((p) => p.includes('off the end of the wire'))).toBe(true)
+  })
+
+  it('names both fuses past the end of a four-fuse wire', () => {
+    // An Electron too old to carry index 4 and 5 must say so for each, not pass.
+    const problems = checkWires(decodeFuseWires(fakeBinary(healthyStates().slice(0, 4))))
+    expect(problems).toEqual([
+      'EnableEmbeddedAsarIntegrityValidation is off the end of the wire, expected ENABLE',
+      'OnlyLoadAppFromAsar is off the end of the wire, expected ENABLE'
+    ])
   })
 })
 

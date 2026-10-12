@@ -24,7 +24,8 @@ files:
   - bundled/** # shipped deck art, read at runtime from <appRoot>/bundled/decks/
 # `bundled/` is 83 MB of deck art. Keep it OUT of the asar so it is read as ordinary
 # files (main resolves it via join(__dirname, '../../bundled/decks')) and so the archive
-# stays small enough to be cheap to open.
+# stays small enough to be cheap to open. The cost: the art is outside the asar
+# integrity check (see enableEmbeddedAsarIntegrityValidation below).
 asarUnpack:
   - bundled/**
 win:
@@ -197,4 +198,27 @@ electronFuses:
   enableNodeCliInspectArguments: false # no --inspect into the main process
   enableNodeOptionsEnvironmentVariable: false # no NODE_OPTIONS injection at launch
   onlyLoadAppFromAsar: true # refuse a side-loaded app/ dir next to the asar
+  # Electron checks app.asar against the hash electron-builder embeds in the
+  # executable, file by file as it reads (HTOO-381; house decision, Sabrael,
+  # 2026-09-28). The build side already ran without it: electron-builder writes the
+  # per-file block hashes and the embedded hash whatever the fuse says, so this only
+  # makes Electron enforce them. Enforced on Windows and macOS; Linux ignores it.
+  #
+  # A changed asar is then a DEAD app: exit code 1 and `ASAR Integrity Violation`
+  # on stderr only, no window and no message. That is why it lands WITH the reader:
+  # scripts/verify-fuses.mjs asserts index 4 in each release build job, and the
+  # release process starts the packaged build before tagging (CHANGELOG header).
+  #
+  # THE DECK ART IS NOT COVERED. `bundled/` (83 MB) is asarUnpack'd above, so the
+  # real app.asar is about 7 MB of code, splash and CHANGELOG. The asar header
+  # carries hashes for the unpacked files too, but Electron does not check them
+  # (epona measured it: a changed unpacked file loads). So the fuse guards the
+  # code, not the art. On Windows the hash lives in the inner corvath.exe, and the
+  # release job signs only the outer setup and portable exes, so this catches a
+  # damaged or changed package, not a local attacker.
+  #
+  # Cost (HTOO-399, measured in oghma): nothing warm, 10-25 ms on a launch from
+  # new files, which is every portable start. Corvath's own before/after launch
+  # timing is in the commit that turned this on.
+  enableEmbeddedAsarIntegrityValidation: true
   resetAdHocDarwinSignature: true # required once fuses are flipped on mac arm64

@@ -63,6 +63,8 @@ export const EXPECTED = [
   { index: 0, name: 'RunAsNode', state: FUSE_STATE.DISABLE },
   { index: 2, name: 'EnableNodeOptionsEnvironmentVariable', state: FUSE_STATE.DISABLE },
   { index: 3, name: 'EnableNodeCliInspectArguments', state: FUSE_STATE.DISABLE },
+  // HTOO-381. A wire that lost this one ships an app that runs a changed asar.
+  { index: 4, name: 'EnableEmbeddedAsarIntegrityValidation', state: FUSE_STATE.ENABLE },
   { index: 5, name: 'OnlyLoadAppFromAsar', state: FUSE_STATE.ENABLE }
 ]
 

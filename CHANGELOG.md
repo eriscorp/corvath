@@ -9,7 +9,12 @@ Release process (the notes are authored HERE, not edited on GitHub after the fac
   2. To cut a release: rename ## [Unreleased] to ## [X.Y.Z] - YYYY-MM-DD, add a
      fresh empty ## [Unreleased] above it, and bump package.json to X.Y.Z
      (npm version X.Y.Z --no-git-tag-version).
-  3. Tag vX.Y.Z and push. The release workflow runs scripts/changelog-extract.mjs
+  3. Start the packaged build before you tag: npm run build:win, then open both
+     exes in dist/ and confirm that each opens its window. The asar integrity fuse
+     makes a changed or damaged package exit with no window and no message, so a
+     package that nobody started is not known to work (HTOO-381).
+     npm run verify:fuses -- dist/win-unpacked/corvath.exe reads the fuses off it.
+  4. Tag vX.Y.Z and push. The release workflow runs scripts/changelog-extract.mjs
      to pull THIS version's section into the GitHub release body, then appends the
      auto-generated PR list below it.
 Keep entries user-facing — internal refactors/tests show up in the appended auto list.
@@ -67,4 +72,5 @@ This is the first release. Corvath is a desktop tarot companion. It draws readin
 - **Corvath refuses to move its window away from its own pages.** It opens a link in your browser only when the link is an ordinary web or mail link. It refuses every other kind of link: a local file path, a network share, a script URL, or a custom scheme that another program on your machine registers.
 - **The interface runs in a sandbox.** Corvath checks every request that the interface makes to its privileged side. The check confirms that the request comes from a real Corvath window that shows the content of Corvath.
 - **Corvath switches off the debug controls in the Electron runtime that it ships.** Nobody can therefore use the bundled binary to run other code through environment variables or command-line flags.
+- **Corvath does not start when its program files are changed.** On Windows and macOS, Corvath checks its program code against a hash that the build records. If the code does not agree, Corvath stops before it opens a window. This check does not include the deck art.
 - **The development content policy cannot reach a packaged Corvath.** The relaxed content policy that the development server needs was chosen from the `NODE_ENV` variable, and a shell can set that variable. Corvath now chooses it only when it loads its window from the development server.

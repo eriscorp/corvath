@@ -109,8 +109,13 @@ jobs:
       # whose fuses we care about. Both Windows artifacts wrap this same
       # win-unpacked directory -- the portable exe as a self-extracting stub, the
       # installer by writing it to disk -- so this one read covers both.
-      - name: Verify Electron fuses on the packaged exe
-        run: node scripts/verify-fuses.mjs dist/win-unpacked/corvath.exe
+      #
+      # Index 4 (asar integrity, HTOO-381) is the one that hurts if it goes
+      # wrong the other way: with it on, a changed app.asar is an app that exits
+      # with no window. The read proves the fuse is set, not that the embedded
+      # hash matches; only starting the packaged build before the tag proves that.
+      - name: Verify Electron fuses
+        run: npm run verify:fuses -- dist/win-unpacked/corvath.exe
 
       - name: Resolve artifact name + version
         id: pkg
@@ -237,6 +242,16 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      # The macOS read of the same wire (HTOO-374). This job had none, so a dmg
+      # whose fuses electron-builder never flipped would publish with every gate
+      # green. Packaging, the optional signing and the dmg are one
+      # electron-builder call here, and no later step signs the dmg, so this is
+      # the earliest point to read: before the upload, so a wrong wire never
+      # reaches the release. The dmg is `arch: universal`, and the reader checks
+      # BOTH slices' wires; the public getCurrentFuseWire reads only the first.
+      - name: Verify Electron fuses
+        run: npm run verify:fuses -- dist/mac-universal/Corvath.app
+
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v7
         with:
@@ -268,9 +283,10 @@ jobs:
 
       # Same read as the Windows job. Cheap here because the unpacked tree is
       # already on disk beside the AppImage, and it is a second architecture's
-      # worth of evidence that the fuse step is running at all.
-      - name: Verify Electron fuses on the packaged binary
-        run: node scripts/verify-fuses.mjs dist/linux-unpacked/corvath
+      # worth of evidence that the fuse step is running at all. Linux ignores the
+      # asar integrity fuse; the reader only confirms it is set.
+      - name: Verify Electron fuses
+        run: npm run verify:fuses -- dist/linux-unpacked/corvath
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v7
