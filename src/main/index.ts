@@ -12,6 +12,7 @@ import { checkForUpdate } from './updateCheck'
 import { captureError, getLogsDir, initSessionLog } from './sessionLog'
 import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
+import { pickerDialog, withPickerStart } from './pickerStart'
 import {
   cspForEnvironment,
   guardIpc,
@@ -224,8 +225,26 @@ app.whenReady().then(async () => {
   // guardIpc wraps ipcMain once, here — every channel registered inside
   // registerHandlers is covered by construction, so a new handler cannot forget
   // to validate its sender.
+  // withPickerStart wraps the dialog once, for the same reason: since Electron 43
+  // a picker with no start folder opens in Downloads, and every picker added
+  // later gets the rule without remembering it (HTOO-553).
   registerHandlers(
-    { ipcMain: guardIpc(ipcMain), BrowserWindow, dialog },
+    {
+      ipcMain: guardIpc(ipcMain),
+      BrowserWindow,
+      dialog: withPickerStart(pickerDialog(dialog), {
+        // getPath throws when the OS has no such folder. A picker then starts at
+        // the next one rather than failing to open.
+        fallbacks: () =>
+          (['documents', 'home'] as const).flatMap((name) => {
+            try {
+              return [app.getPath(name)]
+            } catch {
+              return []
+            }
+          })
+      })
+    },
     {
       store,
       onAppReady: revealMainWindow,

@@ -12,10 +12,10 @@ import { z } from 'zod'
 import type {
   IpcMain,
   BrowserWindow as BrowserWindowType,
-  Dialog,
   OpenDialogOptions,
   SaveDialogOptions
 } from 'electron'
+import type { PickerDialog } from './pickerStart'
 import type {
   Deck,
   DeckExportResult,
@@ -109,7 +109,7 @@ export const deleteDeckImages = (ctx: HandlerContext, deckId: string): Promise<v
 /** Prompt for a destination and write the deck (+ its images) as a `.corvathdeck` zip. */
 export async function exportDeck(
   ctx: HandlerContext,
-  dialog: Dialog,
+  dialog: PickerDialog,
   win: BrowserWindowType | null,
   deck: unknown
 ): Promise<DeckExportResult> {
@@ -122,9 +122,7 @@ export async function exportDeck(
     defaultPath: `${safeName}.${CORVATHDECK_EXT}`,
     filters: DECK_FILTERS
   }
-  const { canceled, filePath } = win
-    ? await dialog.showSaveDialog(win, opts)
-    : await dialog.showSaveDialog(opts)
+  const { canceled, filePath } = await dialog.showSaveDialog(win, opts)
   if (canceled || !filePath) return { canceled: true }
 
   try {
@@ -141,7 +139,7 @@ export async function exportDeck(
  * bytes, so no schema is needed here.
  */
 export async function exportReadings(
-  dialog: Dialog,
+  dialog: PickerDialog,
   win: BrowserWindowType | null,
   defaultName: unknown,
   json: unknown
@@ -151,9 +149,7 @@ export async function exportReadings(
 
   const safeName = (name || 'readings').replace(/[^a-z0-9._-]+/gi, '_')
   const opts: SaveDialogOptions = { defaultPath: `${safeName}.json`, filters: JSON_FILTERS }
-  const { canceled, filePath } = win
-    ? await dialog.showSaveDialog(win, opts)
-    : await dialog.showSaveDialog(opts)
+  const { canceled, filePath } = await dialog.showSaveDialog(win, opts)
   if (canceled || !filePath) return { canceled: true }
 
   try {
@@ -167,15 +163,13 @@ export async function exportReadings(
 /** Prompt for a `.corvathdeck`, then import it as a fresh user deck (new id + unique name). */
 export async function importDeck(
   ctx: HandlerContext,
-  dialog: Dialog,
+  dialog: PickerDialog,
   win: BrowserWindowType | null,
   existingNames: unknown
 ): Promise<DeckImportResult> {
   const taken = z.array(z.string()).parse(existingNames)
   const opts: OpenDialogOptions = { properties: ['openFile'], filters: DECK_FILTERS }
-  const { canceled, filePaths } = win
-    ? await dialog.showOpenDialog(win, opts)
-    : await dialog.showOpenDialog(opts)
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, opts)
   if (canceled || !filePaths[0]) return { canceled: true }
 
   try {
@@ -204,7 +198,8 @@ export async function importDeck(
 interface RegisterDeps {
   ipcMain: IpcMain
   BrowserWindow: typeof BrowserWindowType
-  dialog: Dialog
+  /** Electron's dialog behind `withPickerStart`, so every picker has a start folder. */
+  dialog: PickerDialog
 }
 
 /** Wire every IPC channel to its handler. */

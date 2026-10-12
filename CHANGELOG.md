@@ -121,6 +121,7 @@ keeps all of your data on your own machine.
   white frame or two at the end. Corvath now hides the window before it closes
   it, on every route: the close button, Alt+F4, the taskbar, and quit. The
   splash screen also no longer shows a white frame before its first paint.
+- **The export and import dialogs open in a useful folder.** They open in the folder you used last in this session, or else in your Documents folder. Before, they opened in Downloads.
 - **Report an issue tells you when the copy fails.** Corvath now waits for the copy to the clipboard before it opens the issue page. If the copy fails, Corvath still opens the page, and the message tells you to copy the report yourself.
 
 ### Security
