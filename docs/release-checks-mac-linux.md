@@ -176,6 +176,10 @@ Write this section again for each round: what applies, and what is already done.
 
 All of A1 to A5 and B1 to B4 apply. They are what Corvath owes after the house standards sweep of 2026-10-11 (Electron 44, the LOCALAPPDATA fix, the asar integrity fuse, the canonical palettes, the macOS title bar and menu).
 
+**Done on the Mac** (macOS 27.0.1, Apple Silicon, `6dae72f`, 2026-10-11): A1 to A5 and B1 to B3 pass, and nothing failed. The results are on the cards that each check names, and in Corvath's row of `macos-chrome.md` §10.
+
+**Still owed on the Linux box:** A1 (666 passed), A2 (21 passed and 4 skipped), A3, A4, B1 and B4.
+
 Done on Windows, and not on this page:
 
 - **The theme check** of chips, tabs, filled buttons, the engraved bars and the theme picker (HTOO-355, HTOO-572). Sabrael checked it by eye on 2026-10-11.
