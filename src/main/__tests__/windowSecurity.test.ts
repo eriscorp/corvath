@@ -197,7 +197,7 @@ describe('guardIpc', () => {
     expect(body).toHaveBeenCalledOnce()
   })
 
-  it('guards .once — corvath registers app:ready that way', () => {
+  it('guards .once, so a channel registered that way is covered', () => {
     const { ipc, emit } = makeIpcMain()
     const { win, webContents } = makeWindow(14)
     const body = vi.fn()

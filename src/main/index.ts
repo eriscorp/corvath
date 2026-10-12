@@ -186,14 +186,19 @@ const RENDERER_DEV_URL = (is.dev && process.env['ELECTRON_RENDERER_URL']) || und
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
 
-// False until the reveal below runs for the current main window. A window that
-// `activate` builds later (macOS) starts unrevealed again.
+// False until the reveal below runs for the current main window. Each window
+// that `createWindow` builds starts unrevealed, also one that `activate`
+// builds after ⌘W on macOS.
 let mainWindowRevealed = false
+
+/** How long a main window waits for `app:ready` before the backstop shows it. */
+const REVEAL_BACKSTOP_MS = 15_000
 
 // Reveal the main window and dismiss the splash. Called once the renderer
 // signals `app:ready` (first painted frame is already in the persisted theme),
 // with a timeout backstop so a renderer failure can't leave the window hidden.
-// Idempotent — the backstop and the IPC signal may both fire.
+// Idempotent — the backstop and the IPC signal may both fire. A window that is
+// already gone is not shown: `focusMainWindow` checks `isDestroyed`.
 function revealMainWindow(): void {
   if (mainWindowRevealed) return
   mainWindowRevealed = true
@@ -311,6 +316,17 @@ function createWindow(): void {
   // covers every close path — title-bar button, Alt+F4, taskbar, `app.quit()` —
   // because they all raise `close`.
   const win = mainWindow
+
+  // A new window starts hidden until its renderer signals `app:ready`. The
+  // backstop shows it if that never comes. The timer names its own window: on
+  // macOS, ⌘W and a click on the Dock icon can build a new window before an
+  // earlier window's timer fires, and that timer must not show the new window
+  // before its renderer has painted in the persisted theme.
+  mainWindowRevealed = false
+  setTimeout(() => {
+    if (mainWindow === win) revealMainWindow()
+  }, REVEAL_BACKSTOP_MS)
+
   win.on('close', () => {
     win.hide()
     // On macOS the app keeps running with no window after ⌘W. A menu command
@@ -397,8 +413,9 @@ app.whenReady().then(async () => {
   await store.ensureLayoutsSeeded(seededAt)
 
   // All IPC channels (data persistence, image import/cleanup, window controls,
-  // and the app:ready reveal handshake) live in handlers.ts. Reveal has a 15 s
-  // backstop in case the renderer never signals.
+  // and the app:ready reveal handshake) live in handlers.ts. Each window that
+  // `createWindow` builds has its own 15 s reveal backstop, in case its
+  // renderer never signals.
   // guardIpc wraps ipcMain once, here — every channel registered inside
   // registerHandlers is covered by construction, so a new handler cannot forget
   // to validate its sender.
@@ -465,7 +482,6 @@ app.whenReady().then(async () => {
       }
     }
   )
-  setTimeout(revealMainWindow, 15000)
 
   // Portable exe only: delete the %TEMP% unpack folders that killed launches
   // left behind. Delayed so it does not compete with boot for the disk, and
@@ -485,11 +501,11 @@ app.whenReady().then(async () => {
 
   createWindow()
 
+  // macOS: after ⌘W the app stays in the Dock with no window, and a click on
+  // the Dock icon builds a new one. `createWindow` starts it unrevealed, so its
+  // own `app:ready` reveals it, with its own backstop as at boot.
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindowRevealed = false
-      createWindow()
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 

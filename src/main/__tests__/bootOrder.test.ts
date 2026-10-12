@@ -103,6 +103,29 @@ describe('single-instance lock (HTOO-351)', () => {
   })
 })
 
+describe('the reveal backstop', () => {
+  it('belongs to one window, so a stale timer cannot show a later window', () => {
+    // On macOS ⌘W closes the window and the app stays in the Dock; a click on
+    // the Dock icon builds a new window. A bare `setTimeout(revealMainWindow)`
+    // left from the boot (or from an earlier Dock rebuild) then fires against
+    // the NEW window and shows it before its renderer has painted in the
+    // persisted theme. So createWindow resets the flag and arms a timer that
+    // names its own window, and no unbound timer is left anywhere.
+    const fn = MAIN.slice(at('function createWindow'), at('function sendMenuCommand'))
+    expect(fn).toContain('mainWindowRevealed = false')
+    expect(fn).toMatch(/setTimeout\(\(\) => \{\s*if \(mainWindow === win\) revealMainWindow\(\)/)
+    expect(MAIN).not.toMatch(/setTimeout\(\s*revealMainWindow/)
+  })
+
+  it('lets a window that the Dock rebuilds be revealed by its own signal', () => {
+    // The activate handler builds the window through createWindow, which
+    // arms that window's backstop. handlers-reveal.test.ts holds the other
+    // half: `app:ready` is an `on` listener, not a `once`.
+    const activate = MAIN.slice(at("app.on('activate'"))
+    expect(activate).toMatch(/getAllWindows\(\)\.length === 0\) createWindow\(\)/)
+  })
+})
+
 describe('remote-session rendering (HTOO-325)', () => {
   it('disables hardware acceleration after setPath and before app.whenReady', () => {
     // **The silent failure this fix is most likely to grow.** The electron call

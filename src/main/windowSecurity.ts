@@ -144,11 +144,13 @@ export function isSenderAllowed(event: IpcMainInvokeEvent | IpcMainEvent): boole
  * Installed at the single `registerHandlers` call site, so every channel is
  * covered by construction — a new handler cannot forget to opt in.
  *
- * **`once` is guarded here and is NOT in dagda's version.** Corvath registers the
- * `app:ready` reveal handshake with `ipcMain.once`, which would otherwise fall
- * through the proxy to the raw method and be reachable by any sender. Guarding it
- * also means a rejected `once` does not consume the registration — the listener
- * stays armed for the legitimate sender instead of being burned by the first
+ * **`once` is guarded here and is NOT in dagda's version.** A `once` would
+ * otherwise fall through the proxy to the raw method and be reachable by any
+ * sender. Corvath registered the `app:ready` handshake with `once` until a
+ * window built from the macOS Dock needed a second signal; it is an `on` now,
+ * and the guard stays so that a later `once` is covered. Guarding it also means
+ * a rejected `once` does not consume the registration — the listener stays
+ * armed for the legitimate sender instead of being burned by the first
  * untrusted caller.
  */
 export function guardIpc(ipcMain: IpcMain): IpcMain {

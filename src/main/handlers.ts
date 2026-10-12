@@ -52,7 +52,7 @@ const JSON_FILTERS = [{ name: 'JSON', extensions: ['json'] }]
 
 export interface HandlerContext {
   store: Stores
-  /** Called once when the renderer signals `app:ready` (reveals the window). */
+  /** Called when the renderer signals `app:ready` (reveals the window). */
   onAppReady?: () => void
   /**
    * Called with each valid menu-state report from the renderer (the macOS
@@ -281,8 +281,11 @@ export function registerHandlers(
     (e) => BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false
   )
 
-  // Reveal handshake: the renderer signals once it has hydrated.
-  ipcMain.once('app:ready', () => ctx.onAppReady?.())
+  // Reveal handshake: the renderer signals once it has hydrated. `on`, not
+  // `once`: on macOS a window that `activate` builds after ⌘W signals again,
+  // and a `once` listener was gone by then, so that window stayed hidden. The
+  // reveal ignores a signal for a window it has already shown (index.ts).
+  ipcMain.on('app:ready', () => ctx.onAppReady?.())
 
   // What the macOS menu greys out. A malformed report is dropped: the menu
   // keeps the last good one. The renderer sends it on macOS only.
