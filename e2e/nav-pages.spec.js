@@ -14,6 +14,13 @@ import { launchApp, getMainWindow } from './helpers.js'
 // is the same failure one layer up. `NAV_ITEMS` in NavBar.tsx is the single
 // source, and the regex below is deliberately dumb so a malformed entry fails
 // loudly rather than silently shrinking the list.
+//
+// For each page the walk asserts three things, each named for the page: the
+// page marker is visible, the error boundary's fallback is not there, and no
+// page error was thrown. The profile is empty, so a page renders its first-run
+// state. A fault in code that runs only with other data does not fail here: see
+// "What automation cannot reach" in e2e/README.md.
+// src/renderer/src/lib/__tests__/rendererNodeGlobals.test.ts is the source half.
 
 const here = dirname(fileURLToPath(import.meta.url))
 const navSource = readFileSync(join(here, '..', 'src/renderer/src/components/NavBar.tsx'), 'utf8')
@@ -21,6 +28,10 @@ const navSource = readFileSync(join(here, '..', 'src/renderer/src/components/Nav
 const NAV_ITEMS = [
   ...navSource.matchAll(/\{\s*view:\s*'([^']+)',\s*label:\s*'([^']+)',\s*testId:\s*'([^']+)'\s*\}/g)
 ].map(([, view, label, testId]) => ({ view, label, testId }))
+
+/** How long each page runs before it is checked. An empty profile answers its
+ *  IPC in well under this. */
+const SETTLE_MS = 250
 
 test.describe('Every nav destination', () => {
   let electronApp
@@ -45,17 +56,31 @@ test.describe('Every nav destination', () => {
     page.on('pageerror', (err) => errors.push(`${err.message}`))
 
     for (const item of NAV_ITEMS) {
-      await page.getByRole('tab', { name: item.label, exact: true }).click()
-      await expect(page.getByRole('tab', { name: item.label, exact: true })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
-      // The page-level hook: present AND visible. A tab that selects while its
-      // panel throws leaves the tab looking right and the body empty.
-      await expect(page.getByTestId(item.testId)).toBeVisible()
+      await test.step(item.view, async () => {
+        await page.getByRole('tab', { name: item.label, exact: true }).click()
+        // The page-level hook: present AND visible. A tab that selects while its
+        // panel throws leaves the tab looking right and the body empty. First, so
+        // a page that crashes on mount fails here, by name, rather than on the
+        // tab, which the error boundary removes with everything else.
+        await expect(page.getByTestId(item.testId), `${item.view}: page marker`).toBeVisible()
+        await expect(
+          page.getByRole('tab', { name: item.label, exact: true }),
+          `${item.view}: tab selected`
+        ).toHaveAttribute('aria-selected', 'true')
+        // Let the page's first IPC replies land, so a fault in the render they
+        // start is charged to this page and not the next one. Taliesin and epona
+        // each proved the wait necessary with a throw 100 ms after mount.
+        await page.waitForTimeout(SETTLE_MS)
+        // Explicit, although the boundary wraps the whole app here (main.tsx) and
+        // a crash removes the marker too. A boundary moved inside a page would
+        // leave the marker standing, and this line still fails.
+        await expect(
+          page.getByTestId('error-boundary-fallback'),
+          `${item.view}: error boundary`
+        ).toHaveCount(0)
+        expect(errors, `${item.view}: page error`).toEqual([])
+      })
     }
-
-    expect(errors, `page errors while walking the nav: ${errors.join(' | ')}`).toEqual([])
   })
 })
 

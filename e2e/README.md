@@ -21,13 +21,19 @@ npm run e2e:only   # runs specs against the existing out/ build
 - **`settings-persistence.spec.js`** — change theme → wait for the write to hit disk → relaunch same userData → assert it hydrated. The full renderer → IPC → disk → reload loop.
 - **`theme-switch.spec.js`** — cycle all six themes; each must apply (`data-theme`), repaint, and raise no `pageerror`. Catches a theme wired into the picker but missing from the themes map or main's `THEME_NAMES`, which otherwise fails silently.
 - **`legacy-profile-migration.spec.js`** — HTOO-231. Boots once to get a real seeded `decks.json`, strips every `seedFingerprints` to reproduce a pre-provenance install, then proves the backfill stamps only what is provably unedited and that a later bump delivers corrections without touching anything the user authored.
+- **`nav-pages.spec.js`** — HTOO-393. Opens every tab, with the list read from `NAV_ITEMS` in `NavBar.tsx`, so a new page is covered with no edit to the spec. For each page it waits 250 ms, then asserts the page marker, no `error-boundary-fallback` and no `pageerror`; a failure names the page. It also drives the Settings page (About card, report dialog, What's new) and the draw defaults. `src/renderer/src/lib/__tests__/rendererNodeGlobals.test.ts` is its source half: it fails on a Node global (`process`, `Buffer`, `require`, `__dirname`, `__filename`) used in the renderer, which runs sandboxed.
 - **`draw.spec.js`** — HTOO-233. Both draw modes, the fan row-fit measurement, the pinned-slot path (via `seedLayouts`), and the save handoff into Readings and onto disk.
+
+### What automation cannot reach
+
+- **A page's body behind saved data or a selection.** The nav walk runs on a fresh profile: no readings, and no deck or layout open in its editor. It catches a fault on every path a page takes on first run: the component's top, its hooks, its empty state. It does not reach code that runs only when a reading, a deck or a layout is open. For a Node global there, `rendererNodeGlobals.test.ts` reads the source. For any other fault there, a person opens that page with real data.
 
 ## Testids the harness depends on
 
 `getMainWindow` waits for `[data-testid="app-root"]`, so these must stay put:
 
 - `app-root` (+ its `data-theme`) and `app-hydrating` — `src/renderer/src/App.tsx`.
+- `<view>-page` on each page (the `testId` in `NAV_ITEMS`, `src/renderer/src/components/NavBar.tsx`) and `error-boundary-fallback` — `src/renderer/src/components/ErrorBoundary.tsx`.
 - `title-bar` and `theme-select` — `src/renderer/src/components/TitleBar.tsx`.
 - `draw-slot` (+ `data-slot-index` / `data-flipped` / `data-card-name`), `fan-card` (+ `data-fan-index` / `data-spent`), `fan-row` (+ `data-row-step`) and `draw-mode-deal` / `draw-mode-fan` — `src/renderer/src/pages/Draw.tsx`. The tray and fan are otherwise anonymous `div`s whose state is expressed only as a transform or an opacity.
 
