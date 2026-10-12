@@ -275,20 +275,30 @@ export const SPLASH_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-sr
  * A meta policy applies from where the parser reaches it, and the preamble is
  * injected above it — so the tag let through exactly the code a header stops.
  *
- * Keyed on `NODE_ENV === 'development'`, **not** `app.isPackaged`: the e2e suite
- * runs the built app via `electron .`, where `isPackaged` is false. Keying on it
- * would hand the relaxed policy to the only automated check that drives a real
- * renderer, leaving the production policy tested nowhere. electron-vite sets
- * `development`; `e2e/helpers.js` sets `test`.
+ * Keyed on the dev-server URL, **not** `app.isPackaged`: the e2e suite runs the
+ * built app via `electron .`, where `isPackaged` is false. Keying on it would
+ * hand the relaxed policy to the only automated check that drives a real
+ * renderer, leaving the production policy tested nowhere.
+ *
+ * **And not on `NODE_ENV` either**, which is what this used before HTOO-467's
+ * follow-up. Corvath's built main bundle reads `process.env.NODE_ENV` at run
+ * time, so a stray `NODE_ENV=development` in a user's shell relaxed the policy
+ * of a packaged app. Oghma found it; balor and corvath took the same fix.
  */
 export const DEV_RENDERER_CSP = RENDERER_CSP.replace(
   "script-src 'self'",
   "script-src 'self' 'unsafe-inline'"
 )
 
-/** The policy for this launch. Production unless electron-vite says otherwise. */
-export function cspForEnvironment(nodeEnv: string | undefined): string {
-  return nodeEnv === 'development' ? DEV_RENDERER_CSP : RENDERER_CSP
+/**
+ * The policy for this launch. The relaxation applies only when the window loads
+ * from the Vite dev server, because the dev server is the reason for it.
+ * `devUrl` is index.ts's `RENDERER_DEV_URL`: set only when `is.dev` and
+ * electron-vite give a URL, and the same URL the window loads. The e2e suite
+ * runs the built app with no dev URL, so it tests the strict policy.
+ */
+export function cspForRenderer(devUrl: string | undefined): string {
+  return devUrl ? DEV_RENDERER_CSP : RENDERER_CSP
 }
 
 /** The header name, lower-cased once so the strip and the write cannot disagree. */

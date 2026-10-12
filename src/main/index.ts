@@ -14,7 +14,7 @@ import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
 import { pickerDialog, withPickerStart } from './pickerStart'
 import {
-  cspForEnvironment,
+  cspForRenderer,
   guardIpc,
   hardenWindow,
   initWindowSecurity,
@@ -111,6 +111,13 @@ async function handleAssetRequest(request: Request): Promise<Response> {
   return new Response('Not found', { status: 404 })
 }
 
+// The dev-server URL, or undefined. ONE expression for the three things that
+// depend on it, so they cannot disagree: the trusted location, the URL the
+// window loads, and the CSP relaxation (HTOO-467). `|| undefined`, not
+// `?? undefined`: an empty variable must fall through to the packaged path,
+// not be trusted as a location.
+const RENDERER_DEV_URL = (is.dev && process.env['ELECTRON_RENDERER_URL']) || undefined
+
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
 
@@ -177,8 +184,8 @@ function createWindow(): void {
     win.hide()
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (RENDERER_DEV_URL) {
+    mainWindow.loadURL(RENDERER_DEV_URL)
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html')).catch((err) => {
       console.error('Failed to load renderer:', err)
@@ -195,15 +202,15 @@ app.whenReady().then(async () => {
 
   // Establish what counts as "our own content" BEFORE any window loads. Until
   // this runs the trusted set is empty, which fails closed.
-  initWindowSecurity(
-    is.dev ? process.env['ELECTRON_RENDERER_URL'] : undefined,
-    join(__dirname, '../renderer/index.html')
-  )
+  initWindowSecurity(RENDERER_DEV_URL, join(__dirname, '../renderer/index.html'))
 
   // Serve the CSP as a HEADER as well as the meta tag in index.html. Installed
   // here, before the splash loads, because the splash is the first document the
   // app paints and a policy installed after it would miss it entirely.
-  installContentSecurityPolicy(session.defaultSession, cspForEnvironment(process.env.NODE_ENV))
+  // Relaxed only for the dev server, never on NODE_ENV: the built bundle reads
+  // NODE_ENV at run time, so a stray NODE_ENV=development in a user's shell
+  // relaxed a packaged app (HTOO-467).
+  installContentSecurityPolicy(session.defaultSession, cspForRenderer(RENDERER_DEV_URL))
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

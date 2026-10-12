@@ -4,7 +4,7 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import {
   applyCspHeaders,
-  cspForEnvironment,
+  cspForRenderer,
   DEV_RENDERER_CSP,
   installContentSecurityPolicy,
   isPolicedUrl,
@@ -48,17 +48,28 @@ describe('the meta tag and the header policy are the same policy', () => {
   })
 })
 
-describe('cspForEnvironment', () => {
-  it('serves the strict policy outside development', () => {
-    expect(cspForEnvironment(undefined)).toBe(RENDERER_CSP)
-    expect(cspForEnvironment('production')).toBe(RENDERER_CSP)
-    // `test` is what e2e/helpers.js sets, so the e2e suite exercises the policy
-    // that actually ships rather than the relaxed one.
-    expect(cspForEnvironment('test')).toBe(RENDERER_CSP)
+describe('cspForRenderer', () => {
+  it('serves the strict policy with no dev-server URL', () => {
+    // The e2e suite runs the built app with no dev URL, so it exercises the
+    // policy that actually ships rather than the relaxed one.
+    expect(cspForRenderer(undefined)).toBe(RENDERER_CSP)
+    // An empty variable is not a location; index.ts turns it into undefined.
+    expect(cspForRenderer('')).toBe(RENDERER_CSP)
   })
 
-  it('relaxes only script-src in development', () => {
-    expect(cspForEnvironment('development')).toBe(DEV_RENDERER_CSP)
+  // HTOO-467's follow-up. Keyed on NODE_ENV, a stray NODE_ENV=development in a
+  // user's shell relaxed a PACKAGED app, because the built bundle reads it at
+  // run time. The key is now the URL main loads, so the shell has no say.
+  it('is keyed in index.ts on the dev URL, and never on NODE_ENV', () => {
+    const index = read('src/main/index.ts')
+    expect(index).toContain('cspForRenderer(RENDERER_DEV_URL)')
+    expect(index).not.toMatch(/installContentSecurityPolicy\([^)]*NODE_ENV/)
+    // Main reads no NODE_ENV at all, so the key cannot come back by a side road.
+    expect(index).not.toMatch(/process\.env\.NODE_ENV|process\.env\[['"]NODE_ENV['"]\]/)
+  })
+
+  it('relaxes only script-src for the dev server', () => {
+    expect(cspForRenderer('http://localhost:5173')).toBe(DEV_RENDERER_CSP)
     expect(DEV_RENDERER_CSP).toContain("script-src 'self' 'unsafe-inline'")
 
     // Compare directive by directive rather than by string surgery: a dev-only

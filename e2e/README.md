@@ -47,3 +47,9 @@ A fan card is deliberately overlapped by its right-hand neighbour, so only its l
 2. Splash window → `firstWindow()` can grab it. `getMainWindow` selects by the preload bridge.
 3. Main window is hidden until the renderer signals `app:ready` → wait for `isVisible()`.
 4. Test the **built** app; rebuild after any `src/` change (`npm run e2e` does `build &&` first).
+
+## Field checks
+
+Checks a person runs over CDP (see `.claude/skills/verify/SKILL.md`), because no spec can read them. Each row records the date and what was measured.
+
+- **Content-Security-Policy header (HTOO-467), 2026-10-11.** The built app, launched with `NODE_ENV=development` in its environment, served the main document exactly one `Content-Security-Policy` header, and it was the strict policy (`script-src 'self'`). The control: the build before the fix, launched the same way, served `script-src 'self' 'unsafe-inline'`. A walk of all five tabs logged no `Refused to` message, with 0 broken images and both bundled fonts loaded. Corvath plays no audio. `npm run dev` served the relaxed policy, rendered `app-root`, and logged no `Refused to` message. DevTools was not opened by hand; `devtools:` URLs are not policed, and `windowSecurity.csp.test.ts` pins that.
