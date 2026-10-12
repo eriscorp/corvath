@@ -17,6 +17,13 @@ Release process (the notes are authored HERE, not edited on GitHub after the fac
   4. Tag vX.Y.Z and push. The release workflow runs scripts/changelog-extract.mjs
      to pull THIS version's section into the GitHub release body, then appends the
      auto-generated PR list below it.
+  5. When the release job has published the GitHub Release, start the packaged
+     app from it, then run npm run publish:version -- vX.Y.Z (add --dry-run first
+     to see the change). It writes corvath's entry in the house version manifest
+     (versions.json in hybrasyl/cernunnos) with your own git access: it needs a
+     clean ../cernunnos checkout on main, and gh signed in. Running copies of
+     Corvath see the release only after this step. The release run prints the
+     command as a reminder (update-check module v1, HTOO-382).
 Keep entries user-facing — internal refactors/tests show up in the appended auto list.
 
 Write entries in ASD-STE100 Simplified Technical English (asd-ste100.org), like the rest of the
