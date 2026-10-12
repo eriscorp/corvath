@@ -4,8 +4,7 @@ import MinimizeIcon from '@mui/icons-material/Minimize'
 import CropSquareIcon from '@mui/icons-material/CropSquare'
 import FilterNoneIcon from '@mui/icons-material/FilterNone'
 import CloseIcon from '@mui/icons-material/Close'
-import type { ThemeName } from '../../../shared/types'
-import { PLAIN_CHROME_THEMES } from '../themes'
+import { ENGRAVED_CHROME_THEMES, type ThemeName } from '../../../shared/types'
 // 64px WebP for a 22px render, imported so vite fingerprints and bundles it. The
 // previous `BASE_URL + 'corvath.png'` pulled the 1254px/2.36 MB master out of the
 // publicDir, which also meant a second copy of it in the packaged app.
@@ -14,8 +13,16 @@ import logoUrl from '../assets/corvath.webp'
 // Interactive controls must opt out of the window-drag region.
 const noDrag = { WebkitAppRegion: 'no-drag' } as const
 
+// Dark bar text (danaan's #1a1008 on its gold bar, grinneal's near-black on its
+// tan one) is engraved: a thin cream edge below and right, as if cut into the
+// bar. Which themes engrave is ENGRAVED_CHROME_THEMES in shared/types (HTOO-572;
+// from mabon WP96 and taliesin #96). Corvath's other bars have no edge: the
+// template's #000 keyline belongs to the Game-Icons chrome, which corvath
+// declines (00a-backlog.md).
+const ENGRAVE = '1px 1px 0 rgba(255,248,232,0.75)'
+
 interface TitleBarProps {
-  /** Still needed: the plain-chrome themes repaint the bar's foreground. */
+  /** Selects the engraved chrome for the themes with dark bar text. */
   themeName: ThemeName
 }
 
@@ -27,17 +34,33 @@ export default function TitleBar({ themeName }: TitleBarProps) {
     return window.api.window.onMaximizeChange(setMaximized)
   }, [])
 
-  // The corporate themes paint a flat navy/charcoal bar. Mundanes is a light
-  // theme, so its default input/text colors are dark and would vanish on the
-  // navy bar — force a white chrome foreground when a plain-chrome theme is
-  // active. The four stylized themes carry their own dark chrome and need no
-  // override. (The theme Select that also needed this lives on the Settings
-  // page now, on an ordinary Paper, so it needs no chrome override at all.)
-  const plain = PLAIN_CHROME_THEMES.includes(themeName)
-  const chromeFg = plain ? 'common.white' : undefined
+  // The bar paints `secondary.main` and its text and icons take
+  // `secondary.contrastText`, as in every house app: the palette test holds
+  // that pair at 4.5:1 in each theme (HTOO-572). The theme's MuiAppBar fill is
+  // not used, because on mundanes it is white, and the plain themes' white
+  // foreground is now their contrastText.
+  const engraved = ENGRAVED_CHROME_THEMES.includes(themeName)
+  // Each theme's MuiSvgIcon override gives every icon an accent of its own
+  // (danaan's is 1.6:1 on its gold bar), so the window icons take the bar's
+  // text colour from the button instead.
+  const iconSx = {
+    '& .MuiSvgIcon-root': {
+      color: 'inherit',
+      ...(engraved && { filter: `drop-shadow(${ENGRAVE})` })
+    }
+  }
 
   return (
-    <AppBar position="static" elevation={0} sx={{ WebkitAppRegion: 'drag', userSelect: 'none' }}>
+    <AppBar
+      position="static"
+      elevation={0}
+      sx={{
+        WebkitAppRegion: 'drag',
+        userSelect: 'none',
+        bgcolor: 'secondary.main',
+        color: 'secondary.contrastText'
+      }}
+    >
       <Toolbar data-testid="title-bar" variant="dense" sx={{ minHeight: 40, px: 1.5 }}>
         <Box
           component="img"
@@ -47,7 +70,12 @@ export default function TitleBar({ themeName }: TitleBarProps) {
         />
         <Typography
           variant="h6"
-          sx={{ fontSize: '1rem', letterSpacing: '0.14em', color: chromeFg }}
+          sx={{
+            fontSize: '1rem',
+            letterSpacing: '0.14em',
+            color: 'secondary.contrastText',
+            textShadow: engraved ? ENGRAVE : 'none'
+          }}
         >
           Corvath
         </Typography>
@@ -57,7 +85,7 @@ export default function TitleBar({ themeName }: TitleBarProps) {
         <Tooltip title="Minimize">
           <IconButton
             size="small"
-            sx={{ ...noDrag, color: chromeFg }}
+            sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
             aria-label="minimize"
             onClick={() => window.api.window.minimize()}
           >
@@ -67,7 +95,7 @@ export default function TitleBar({ themeName }: TitleBarProps) {
         <Tooltip title={maximized ? 'Restore' : 'Maximize'}>
           <IconButton
             size="small"
-            sx={{ ...noDrag, color: chromeFg }}
+            sx={{ ...noDrag, ...iconSx, color: 'secondary.contrastText' }}
             aria-label="maximize"
             onClick={() => window.api.window.toggleMaximize()}
           >
@@ -79,7 +107,8 @@ export default function TitleBar({ themeName }: TitleBarProps) {
             size="small"
             sx={{
               ...noDrag,
-              color: chromeFg,
+              ...iconSx,
+              color: 'secondary.contrastText',
               '&:hover': { bgcolor: 'error.main', color: 'common.white' }
             }}
             aria-label="close"

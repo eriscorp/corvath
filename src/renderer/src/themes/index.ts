@@ -1,9 +1,12 @@
+// Side-effect imports inject the @font-face rules so MUI's typography
+// can resolve "Cinzel" / "Cinzel Decorative" / "Crimson Pro". Without these
+// the browser falls back to the sans-serif stack and the fonts look wrong.
 import '@fontsource/cinzel'
 import '@fontsource/cinzel-decorative'
 import '@fontsource/crimson-pro'
-
 import type { Theme } from '@mui/material/styles'
-import type { ThemeName } from '../../../shared/types'
+import type { ThemeName } from '@shared/types'
+
 import hybrasylTheme from './hybrasyl'
 import chadulTheme from './chadul'
 import danaanTheme from './danaan'
@@ -13,25 +16,14 @@ import dubhaimidTheme from './dubhaimid'
 
 export { hybrasylTheme, chadulTheme, danaanTheme, grinnealTheme, mundanesTheme, dubhaimidTheme }
 
-export const themes: Record<ThemeName, Theme> = {
+// name → MUI theme, so a ThemePicker (or anything else) can paint a preview in
+// that theme's own palette without making it the active theme. Mirrors the map
+// App.tsx feeds to ThemeProvider.
+export const themesByName: Record<ThemeName, Theme> = {
   hybrasyl: hybrasylTheme,
-  danaan: danaanTheme,
   chadul: chadulTheme,
+  danaan: danaanTheme,
   grinneal: grinnealTheme,
   mundanes: mundanesTheme,
   dubhaimid: dubhaimidTheme
 }
-
-export const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
-  { value: 'hybrasyl', label: 'Hybrasyl' },
-  { value: 'danaan', label: 'Danaan' },
-  { value: 'chadul', label: 'Chadul' },
-  { value: 'grinneal', label: 'Grinneal' },
-  { value: 'mundanes', label: 'Mundanes' },
-  { value: 'dubhaimid', label: 'Dubhaimid' }
-]
-
-// The corporate themes paint flat navy/charcoal chrome. TitleBar branches on
-// this to keep the title-bar text and controls legible on that bar (the other
-// four themes carry their own dark chrome, so no special handling is needed).
-export const PLAIN_CHROME_THEMES: ThemeName[] = ['mundanes', 'dubhaimid']

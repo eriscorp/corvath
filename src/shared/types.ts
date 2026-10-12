@@ -4,6 +4,23 @@ export type Orientation = 'upright' | 'reversed'
 
 export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
 
+/**
+ * The "corporate/plain" themes: a flat navy bar with white text and no edge.
+ * `chromeContrast.test.tsx` uses it to tell them from the decorated themes.
+ */
+export const PLAIN_CHROME_THEMES: ThemeName[] = ['mundanes', 'dubhaimid']
+
+/**
+ * The decorated themes whose bar text (`secondary.contrastText`) is dark. A
+ * dark edge outlines LIGHT text; around dark text it merges with the glyph and
+ * doubles its edges, so these bars are engraved instead (a thin cream edge
+ * below and right, as if cut into the bar). An explicit list, not a luminance
+ * rule in the component, so a palette tweak near the line cannot flip a theme's
+ * chrome by accident (HTOO-572). `chromeContrast.test.tsx` fails when the list
+ * and the palettes disagree.
+ */
+export const ENGRAVED_CHROME_THEMES: ThemeName[] = ['danaan', 'grinneal']
+
 /** A single card / question within a reading. */
 export interface Entry {
   id: string

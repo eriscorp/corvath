@@ -1,7 +1,17 @@
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material'
 import type { ReactElement } from 'react'
 import type { ThemeName } from '../../../shared/types'
-import { THEME_OPTIONS } from '../themes'
+
+// The six themes in picker order. They lived in themes/index.ts, which is now
+// the template's file (HTOO-572).
+const THEME_OPTIONS: { value: ThemeName; label: string }[] = [
+  { value: 'hybrasyl', label: 'Hybrasyl' },
+  { value: 'danaan', label: 'Danaan' },
+  { value: 'chadul', label: 'Chadul' },
+  { value: 'grinneal', label: 'Grinneal' },
+  { value: 'mundanes', label: 'Mundanes' },
+  { value: 'dubhaimid', label: 'Dubhaimid' }
+]
 
 interface ThemePickerProps {
   value: ThemeName

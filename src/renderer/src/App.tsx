@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Box, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material'
 import type { ThemeName } from '../../shared/types'
-import { hybrasylTheme, themes } from './themes'
+import { hybrasylTheme, themesByName } from './themes'
 import { useSettingsStore } from './store/settingsStore'
 import { useReadingsStore } from './store/readingsStore'
 import { useDecksStore } from './store/decksStore'
@@ -90,7 +90,7 @@ function App(): React.JSX.Element {
 
   const changeTheme = (name: ThemeName): void => setTheme(name)
 
-  const theme = themes[themeName] ?? hybrasylTheme
+  const theme = themesByName[themeName] ?? hybrasylTheme
 
   // Gate first paint on settings hydration so the app never flashes the default
   // theme. In practice the window stays hidden until app:ready fires (just after

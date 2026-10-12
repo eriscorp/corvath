@@ -20,8 +20,7 @@ import UpdateCheckButton from './UpdateCheckButton'
  * The house About card (midir's form): the card owns its own `Paper` and its
  * heading, so the Settings page places it like any other card and does not wrap
  * it. The heading uses `cardHeadingSx`, the same as the other Settings cards, so
- * the page reads as one set. Midir's `text.button` heading colour is not taken
- * here; `settingsCardSx.ts` says why it fails on Mundanes.
+ * the page reads as one set: `text.button`, as midir's does.
  *
  * About and What's New keep their open state LOCAL: each has exactly one opener.
  * **Report an issue is the exception**, and its flag lives on `reportStore`
@@ -51,7 +50,9 @@ export default function AboutCard(): ReactElement {
 
   return (
     <Paper sx={cardSx} data-testid="about-card">
-      <Typography sx={cardHeadingSx}>About</Typography>
+      <Typography variant="h6" sx={cardHeadingSx}>
+        About
+      </Typography>
 
       <Stack direction="row" sx={{ alignItems: 'center', gap: 2, my: 2 }}>
         <Box

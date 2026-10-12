@@ -16,21 +16,19 @@ export const cardSx = {
 } as const
 
 /**
- * `text.primary`, and **this is a deliberate divergence from balor's copy.**
+ * `text.button`, the house heading colour (the template's card vocabulary, and
+ * midir's). The palette test holds it at 4.5:1 on the page and on paper in all
+ * six themes (HTOO-572).
  *
- * Balor uses `text.headline`, a token from the house EXTENDED palette. Corvath
- * never adopted that — it has no `augmentation.ts` and no theme here defines
- * `headline`. Copied verbatim, the token resolves to nothing, MUI passes the
- * literal string through as a CSS colour, the declaration is dropped, and the
- * heading silently inherits body colour in all six themes. That is a copy that
- * looks right in review and is wrong on screen.
- *
- * The rule balor's note is really protecting still applies: do **not** reach for
- * `text.button`. That is the colour of text sitting ON a filled button, so a
- * light theme with filled buttons sets it to white — invisible as a heading on a
- * light Paper. Mundanes is corvath's only light theme, so it is the only one
- * that would show the mistake (HTOO-271).
+ * Corvath used `text.primary` here until the canonical palettes landed, for two
+ * reasons that no longer hold. Corvath had no `augmentation.ts`, so no theme
+ * defined the extended tokens, and balor's `text.headline` resolved to nothing.
+ * And in the old palettes `text.button` was the colour of text ON a filled
+ * button, so Mundanes set it to white, which a light Paper hides (HTOO-271).
+ * The canonical palettes define every token, and give `text.button` one job:
+ * headings on the page and on cards. Mundanes' is `#1a1a1a`. The bars use
+ * `secondary.contrastText` instead.
  */
-export const cardHeadingSx = { color: 'text.primary', fontWeight: 'bold' } as const
+export const cardHeadingSx = { color: 'text.button', fontWeight: 'bold' } as const
 
 export const cardDescSx = { color: 'text.secondary', mb: 2 } as const
