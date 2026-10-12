@@ -14,6 +14,12 @@ import type {
   TarotApi
 } from '../shared/types'
 import type { UpdateCheckResult } from '../shared/updateVersion'
+import {
+  MENU_COMMAND_CHANNEL,
+  MENU_STATE_CHANNEL,
+  type MenuMessage,
+  type MenuState
+} from '../shared/appMenu'
 
 const api: TarotApi = {
   // A sandboxed preload has `process.platform`; the renderer has no `process`.
@@ -79,6 +85,16 @@ const api: TarotApi = {
       ipcRenderer.on('window:maximizeChange', listener)
       return () => ipcRenderer.removeListener('window:maximizeChange', listener)
     }
+  },
+  // The macOS application menu. The listener is wrapped so the IpcRendererEvent
+  // never crosses the bridge: the renderer gets the payload only.
+  menu: {
+    onCommand: (cb: (msg: MenuMessage) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, msg: MenuMessage): void => cb(msg)
+      ipcRenderer.on(MENU_COMMAND_CHANNEL, listener)
+      return () => ipcRenderer.removeListener(MENU_COMMAND_CHANNEL, listener)
+    },
+    setState: (state: MenuState): void => ipcRenderer.send(MENU_STATE_CHANNEL, state)
   }
 }
 

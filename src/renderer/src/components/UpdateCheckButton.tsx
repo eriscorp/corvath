@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { Box, Button, Link, Typography } from '@mui/material'
 import { describeFailure, type UpdateCheckResult } from '@shared/updateVersion'
 import { appIdentity } from '@shared/appIdentity'
+import { useMenuRequest } from '@renderer/lib/useMenuRequest'
 
 /**
  * "Check for updates" (update-check module). It belongs on the Settings About
@@ -11,12 +12,16 @@ import { appIdentity } from '@shared/appIdentity'
  * It runs the same check as the start-up notice and says what it found, under
  * the button. Unlike the notice, it explains a failure: the user asked. For the
  * same reason it shows a version the user closed in the notice before.
+ *
+ * On macOS, App menu → Check for Updates… runs the same check (a menu request,
+ * taken also when this mounts after the click).
  */
 const UpdateCheckButton: React.FC<{ currentVersion: string }> = ({ currentVersion }) => {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<UpdateCheckResult | null>(null)
 
   const check = async (): Promise<void> => {
+    if (busy) return
     setBusy(true)
     try {
       setResult(await window.api.checkForUpdate())
@@ -28,6 +33,8 @@ const UpdateCheckButton: React.FC<{ currentVersion: string }> = ({ currentVersio
       setBusy(false)
     }
   }
+
+  useMenuRequest('checkForUpdates', () => void check())
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>

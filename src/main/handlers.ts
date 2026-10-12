@@ -30,6 +30,8 @@ import type {
 } from '../shared/types'
 import type { UpdateCheckResult } from '../shared/updateVersion'
 import { appIdentity } from '../shared/appIdentity'
+import { MENU_STATE_CHANNEL, type MenuState } from '../shared/appMenu'
+import { parseMenuState } from './appMenu'
 import type { Stores } from './store'
 import { checkForUpdate as updateCheck } from './updateCheck'
 import {
@@ -52,6 +54,11 @@ export interface HandlerContext {
   store: Stores
   /** Called once when the renderer signals `app:ready` (reveals the window). */
   onAppReady?: () => void
+  /**
+   * Called with each valid menu-state report from the renderer (the macOS
+   * menu). Wired up in index.ts, which owns the menu.
+   */
+  onMenuState?: (state: MenuState) => void
   /** This build's version, for the About card. */
   appVersion?: () => string
   /**
@@ -276,6 +283,13 @@ export function registerHandlers(
 
   // Reveal handshake: the renderer signals once it has hydrated.
   ipcMain.once('app:ready', () => ctx.onAppReady?.())
+
+  // What the macOS menu greys out. A malformed report is dropped: the menu
+  // keeps the last good one. The renderer sends it on macOS only.
+  ipcMain.on(MENU_STATE_CHANNEL, (_e, value: unknown) => {
+    const state = parseMenuState(value)
+    if (state) ctx.onMenuState?.(state)
+  })
 
   // About card. `getVersion` reads package.json through Electron, which is why
   // e2e launches the project DIRECTORY rather than out/main/index.js — given a

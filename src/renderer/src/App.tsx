@@ -13,7 +13,9 @@ import SettingsPage from './pages/SettingsPage'
 import UpdateNotice from './components/UpdateNotice'
 import ReportIssueDialog from './components/ReportIssueDialog'
 import { useReportStore } from './store/reportStore'
-import NavBar, { type View } from './components/NavBar'
+import { useViewStore } from './store/viewStore'
+import { useAppMenu } from './lib/appMenu'
+import NavBar from './components/NavBar'
 import Readings from './pages/Readings'
 import Draw from './pages/Draw'
 import DeckBuilder from './pages/DeckBuilder'
@@ -57,7 +59,9 @@ function App(): React.JSX.Element {
   const themeName = useSettingsStore((s) => s.theme)
   const hydrated = useSettingsStore((s) => s.hydrated)
   const setTheme = useSettingsStore((s) => s.setTheme)
-  const [view, setView] = useState<View>('readings')
+  // In a store, not here: the macOS menu switches pages too (viewStore.ts).
+  const view = useViewStore((s) => s.view)
+  const setView = useViewStore((s) => s.setView)
   // Lifted so the Draw tab can select the reading it produces when it hands off
   // to the Readings tab.
   const [selectedReadingId, setSelectedReadingId] = useState<string | null>(null)
@@ -78,6 +82,10 @@ function App(): React.JSX.Element {
     void useDecksStore.getState().hydrate()
     void useLayoutsStore.getState().hydrate()
   }, [])
+
+  // The macOS application menu: run its commands and report what it greys out,
+  // once settings have hydrated. Does nothing off macOS.
+  useAppMenu(hydrated)
 
   // Keep the themed scrollbar CSS variables in sync with the active theme.
   useEffect(() => {

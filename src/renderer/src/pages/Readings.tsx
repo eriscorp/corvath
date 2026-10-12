@@ -7,6 +7,7 @@ import { readingsToJson } from '../lib/exportReadings'
 import ReadingList from '../components/ReadingList'
 import ReadingEditor from '../components/ReadingEditor'
 import ImportDialog from '../components/ImportDialog'
+import { useMenuRequest } from '../lib/useMenuRequest'
 
 interface Toast {
   message: string
@@ -92,6 +93,12 @@ export default function Readings({
   const handleExportAll = (): void => {
     if (readings.length) void runExport('corvath-readings', readings)
   }
+
+  // The macOS File menu runs the same three buttons (New Reading, Import,
+  // Export all), also when this page mounts after the click.
+  useMenuRequest('newReading', handleCreate)
+  useMenuRequest('importReadings', () => setImportOpen(true))
+  useMenuRequest('exportAllReadings', handleExportAll)
 
   return (
     <Box data-testid="readings-page" sx={{ flexGrow: 1, display: 'flex', minHeight: 0 }}>

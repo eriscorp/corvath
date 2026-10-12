@@ -57,6 +57,10 @@ export function createMockApi(): TarotApi {
       close: vi.fn(),
       isMaximized: vi.fn(async () => false),
       onMaximizeChange: vi.fn(() => () => undefined)
+    },
+    menu: {
+      onCommand: vi.fn(() => () => undefined),
+      setState: vi.fn()
     }
   }
 }

@@ -10,6 +10,7 @@ import { cardHeadingSx, cardSx } from '../lib/settingsCardSx'
 // sized for its own 22px render and would be soft here.
 import appIcon from '../assets/corvath-128.webp'
 import { useReportStore } from '../store/reportStore'
+import { useMenuRequest } from '../lib/useMenuRequest'
 import AboutDialog from './AboutDialog'
 import WhatsNewDialog from './WhatsNewDialog'
 import UpdateCheckButton from './UpdateCheckButton'
@@ -22,7 +23,9 @@ import UpdateCheckButton from './UpdateCheckButton'
  * it. The heading uses `cardHeadingSx`, the same as the other Settings cards, so
  * the page reads as one set: `text.button`, as midir's does.
  *
- * About and What's New keep their open state LOCAL: each has exactly one opener.
+ * About and What's New keep their open state LOCAL: each has one button. The
+ * macOS menu opens them too, through a menu request that this card takes when
+ * it mounts (`useMenuRequest`), so neither dialog moves out of the card.
  * **Report an issue is the exception**, and its flag lives on `reportStore`
  * because it has two — this button and the error boundary's fallback, which
  * renders after `App` is gone.
@@ -37,6 +40,10 @@ export default function AboutCard(): ReactElement {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
   const openReport = useReportStore((s) => s.setOpen)
+
+  // App menu → About Corvath, and Help → What's New (macOS).
+  useMenuRequest('about', () => setAboutOpen(true))
+  useMenuRequest('whatsNew', () => setWhatsNewOpen(true))
 
   useEffect(() => {
     let live = true

@@ -24,6 +24,7 @@ npm run e2e:only   # runs specs against the existing out/ build
 - **`nav-pages.spec.js`** — HTOO-393. Opens every tab, with the list read from `NAV_ITEMS` in `NavBar.tsx`, so a new page is covered with no edit to the spec. For each page it waits 250 ms, then asserts the page marker, no `error-boundary-fallback` and no `pageerror`; a failure names the page. It also drives the Settings page (About card, report dialog, What's new) and the draw defaults. `src/renderer/src/lib/__tests__/rendererNodeGlobals.test.ts` is its source half: it fails on a Node global (`process`, `Buffer`, `require`, `__dirname`, `__filename`) used in the renderer, which runs sandboxed.
 - **`software-rendering.spec.js`** — HTOO-325. A launch with `CORVATH_DISABLE_GPU=1` must set Chromium's `disable-gpu` switch and render Paper with no `backdrop-filter`. The control launch (`CORVATH_DISABLE_GPU=0`) must keep both. `launchApp`'s `extraEnv` option sets the variable.
 - **`draw.spec.js`** — HTOO-233. Both draw modes, the fan row-fit measurement, the pinned-slot path (via `seedLayouts`), and the save handoff into Readings and onto disk.
+- **`app-menu.spec.js`** — macOS only; it skips elsewhere. Reads the application menu that main installs (no Reload, the product name in the role labels), the empty title bar and its real 78 px left padding, and clicks items through `getMenuItemById(id).click()`: Check for Updates…, Go, New Reading, the greying of Export All Readings, About and What's New. Go over an open dialog must change nothing.
 
 ### What automation cannot reach
 

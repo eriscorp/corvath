@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { appIdentity } from '@shared/appIdentity'
 import type { UpdateCheckResult } from '@shared/updateVersion'
+import { useMenuStore } from '@renderer/store/menuStore'
 import UpdateCheckButton from '../UpdateCheckButton'
 
 const URL_020 = `${appIdentity.releaseUrlPrefix}tag/v0.2.0`
@@ -70,5 +71,19 @@ describe('UpdateCheckButton', () => {
     expect(screen.getByRole('button', { name: /checking/i })).toBeDisabled()
     await act(async () => finish({ ok: true, update: null }))
     expect(screen.getByRole('button', { name: /check for updates/i })).toBeEnabled()
+  })
+})
+
+describe('UpdateCheckButton and the macOS menu', () => {
+  it('runs the check for App menu → Check for Updates…, made before it mounted', async () => {
+    useMenuStore.setState({ pending: {} })
+    window.api.checkForUpdate = vi.fn(async () => ({ ok: true as const, update: null }))
+    useMenuStore.getState().request('checkForUpdates')
+    await act(async () => {
+      render(<UpdateCheckButton currentVersion="0.1.0" />)
+    })
+    expect(window.api.checkForUpdate).toHaveBeenCalledOnce()
+    expect(screen.getByTestId('update-check-result')).toHaveTextContent('is up to date')
+    expect(useMenuStore.getState().pending.checkForUpdates).toBeUndefined()
   })
 })

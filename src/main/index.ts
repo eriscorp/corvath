@@ -5,6 +5,7 @@ import {
   clipboard,
   dialog,
   ipcMain,
+  Menu,
   net,
   protocol,
   session
@@ -25,6 +26,14 @@ import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './d
 import { pickerDialog, withPickerStart } from './pickerStart'
 import { shouldDisableHardwareAcceleration, REMOTE_SESSION_CSS } from './remoteSession'
 import { sweepPortableLeftovers } from './portableSweep'
+import { buildMenuTemplate } from './appMenu'
+import { appIdentity } from '../shared/appIdentity'
+import {
+  INITIAL_MENU_STATE,
+  MENU_COMMAND_CHANNEL,
+  type MenuMessage,
+  type MenuState
+} from '../shared/appMenu'
 import {
   cspForRenderer,
   guardIpc,
@@ -304,6 +313,10 @@ function createWindow(): void {
   const win = mainWindow
   win.on('close', () => {
     win.hide()
+    // On macOS the app keeps running with no window after ⌘W. A menu command
+    // then reaches no renderer, so the app items go grey until a new window
+    // (from the Dock) reports again. Nothing cancels a close, so this is final.
+    onMenuState(INITIAL_MENU_STATE)
   })
 
   if (RENDERER_DEV_URL) {
@@ -315,8 +328,43 @@ function createWindow(): void {
   }
 }
 
+// ── The macOS application menu ───────────────────────────────────────────────
+// An app item sends `menu:command` to the main window; the renderer reports
+// what to grey out (`app:setMenuState`), and the menu is rebuilt when that
+// changes. Windows and Linux keep Electron's default (hidden) menu: a menu
+// there would register its accelerators even while hidden. The design is
+// docs/architecture/macos-chrome.md in the document repo.
+let menuState: MenuState = INITIAL_MENU_STATE
+
+function sendMenuCommand(msg: MenuMessage): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(MENU_COMMAND_CHANNEL, msg)
+  }
+}
+
+function applyAppMenu(): void {
+  if (process.platform !== 'darwin') return
+  const template = buildMenuTemplate(menuState, {
+    // The product name, not `app.name` ("corvath"): see MenuOptions.appName.
+    appName: appIdentity.productName,
+    isDev: !app.isPackaged,
+    send: sendMenuCommand
+  })
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+function onMenuState(state: MenuState): void {
+  if (JSON.stringify(state) === JSON.stringify(menuState)) return
+  menuState = state
+  if (app.isReady()) applyAppMenu()
+}
+
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId('co.eris.corvath')
+
+  // Before the first window, so Electron's default menu (with Reload) is never
+  // installed on macOS. Returns at once elsewhere.
+  applyAppMenu()
 
   // Errors only, five sessions kept, in a subfolder of its own so "Reveal logs"
   // has a target holding nothing else.
@@ -377,6 +425,7 @@ app.whenReady().then(async () => {
     {
       store,
       onAppReady: revealMainWindow,
+      onMenuState,
       appVersion: () => app.getVersion(),
       // The update check's one request goes through Chromium's network stack, so
       // it uses the system proxy and the OS certificate store.

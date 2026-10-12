@@ -1,4 +1,5 @@
 import type { UpdateCheckResult } from './updateVersion'
+import type { MenuMessage, MenuState } from './appMenu'
 
 export type Orientation = 'upright' | 'reversed'
 
@@ -296,6 +297,13 @@ export interface TarotApi {
     revealLogs(): void
   }
   window: WindowControls
+  /** The macOS application menu. Unused elsewhere: there is no menu to drive. */
+  menu: {
+    /** Listen for menu commands; returns the unsubscribe. */
+    onCommand(cb: (msg: MenuMessage) => void): () => void
+    /** Report what the menu greys out. */
+    setState(state: MenuState): void
+  }
 }
 
 /**
