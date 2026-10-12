@@ -1,5 +1,6 @@
 import { createTheme, responsiveFontSizes } from '@mui/material/styles'
 import { plainTypography } from './plainTypography'
+import { corvathOverrides } from './corvathOverrides'
 
 // Dubhaimid — the dark "corporate/boring" theme. Neutral charcoal grays
 // (VS Code-ish), light-gray text, a single muted blue accent, plain
@@ -64,6 +65,7 @@ const dubhaimidTheme = responsiveFontSizes(
     shape: { borderRadius: 6 },
 
     components: {
+      ...corvathOverrides,
       MuiPaper: {
         styleOverrides: {
           root: {

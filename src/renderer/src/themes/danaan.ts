@@ -1,5 +1,6 @@
 import { createTheme, responsiveFontSizes } from '@mui/material/styles'
 import { baseTypography } from './baseTypography'
+import { corvathOverrides } from './corvathOverrides'
 
 const danaanTheme = responsiveFontSizes(
   createTheme({
@@ -59,6 +60,7 @@ const danaanTheme = responsiveFontSizes(
     shape: { borderRadius: 2 },
 
     components: {
+      ...corvathOverrides,
       MuiPaper: {
         styleOverrides: {
           root: {

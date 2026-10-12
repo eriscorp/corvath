@@ -1,5 +1,6 @@
 import { createTheme, responsiveFontSizes } from '@mui/material/styles'
 import { plainTypography } from './plainTypography'
+import { corvathOverrides } from './corvathOverrides'
 
 // Mundanes — the light "corporate/boring" theme. White and light-gray
 // surfaces, dark text, a single restrained slate-blue accent, plain
@@ -67,6 +68,7 @@ const mundanesTheme = responsiveFontSizes(
     shape: { borderRadius: 6 },
 
     components: {
+      ...corvathOverrides,
       MuiPaper: {
         styleOverrides: {
           root: {

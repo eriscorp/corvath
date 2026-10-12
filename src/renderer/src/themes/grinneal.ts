@@ -1,5 +1,6 @@
 import { createTheme, responsiveFontSizes } from '@mui/material/styles'
 import { baseTypography } from './baseTypography'
+import { corvathOverrides } from './corvathOverrides'
 
 const grinnealTheme = responsiveFontSizes(
   createTheme({
@@ -61,6 +62,7 @@ const grinnealTheme = responsiveFontSizes(
     shape: { borderRadius: 2 },
 
     components: {
+      ...corvathOverrides,
       MuiPaper: {
         styleOverrides: {
           root: {
