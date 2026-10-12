@@ -175,6 +175,11 @@ linux:
   syncDesktopName: true
   category: Utility
   synopsis: Tarot reading recorder
+  # The deb target REQUIRES a maintainer. Without it electron-builder falls back
+  # to package.json's author email, finds none ("Caeldeth"), and fails the whole
+  # Linux build after the AppImage is already written. Windows never builds the
+  # deb target, so only the Linux box sees it. scripts/icons.test.mjs pins it.
+  maintainer: Sabrael <sabrael@hybrasyl.com>
   target:
     - target: AppImage
       arch:
