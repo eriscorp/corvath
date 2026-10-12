@@ -59,6 +59,16 @@ describe('parseReadingsImport', () => {
     expect(res.readings[0].entries.every((e) => e.positionId === undefined)).toBe(true)
   })
 
+  it('finds a layout whose name is in the other Unicode form, or another case', () => {
+    // "Croisé" with é composed (typed) in the layout, decomposed (as macOS
+    // stores a file name) in the import.
+    const croise: Layout = { ...threeCard, id: 'lay-x', name: 'Croisé' }
+    const text = JSON.stringify({ ...JSON.parse(valid), layout: 'CROISÉ' })
+    const res = parseReadingsImport(text, [croise])
+    expect(res.errors).toEqual([])
+    expect(res.readings[0].layoutId).toBe('lay-x')
+  })
+
   it('errors when a named layout is not found', () => {
     const res = parseReadingsImport(valid, []) // no layouts
     expect(res.readings).toEqual([])
