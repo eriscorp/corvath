@@ -178,9 +178,9 @@ All of A1 to A5 and B1 to B4 apply. They are what Corvath owes after the house s
 
 **Done on the Mac** (macOS 27.0.1, Apple Silicon, `6dae72f`, 2026-10-11): A1 to A5 and B1 to B3 pass, and nothing failed. The results are on the cards that each check names, and in Corvath's row of `macos-chrome.md` §10.
 
-**Done on the Linux box** (Linux Mint 22.3, x86_64, Cinnamon on X11, `40e706d`, 2026-10-12): A1 (666 passed), A2 (21 passed and 4 skipped), A3, A4, B1 and B4 pass. B4.5 first failed: the `.deb` did not package, because the `linux:` block had no `maintainer`. PR #6 fixes it, and B4.5 passes on that build. The results are on the cards that each check names, and the failure and the fix are on HTOO-63.
+**Done on the Linux box** (Linux Mint 22.3, x86_64, Cinnamon on X11, `40e706d`, 2026-10-12): A1 (666 passed), A2 (21 passed and 4 skipped), A3, A4, B1 and B4 pass. B4.5 first failed: the `.deb` did not package, because the `linux:` block had no `maintainer`. PR #6 (merged) fixes it, and B4.5 passes on that build. The results are on the cards that each check names, and the failure and the fix are on HTOO-63.
 
-**Still owed:** PR #6 to merge.
+**Nothing is owed** on this page for this round.
 
 Done on Windows, and not on this page:
 
