@@ -16,6 +16,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import type { Deck, Entry, LayoutPosition, Orientation } from '../../../shared/types'
 import DrawCard from './DrawCard'
 import CardPreview from './CardPreview'
+import { sameName } from '../lib/sameName'
 
 interface EntryCardProps {
   entry: Entry
@@ -41,7 +42,8 @@ export default function EntryCard({
 }: EntryCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const cardNames = deck ? deck.cards.map((c) => c.name) : []
-  const deckCard = deck?.cards.find((c) => c.name === entry.card) ?? null
+  // The typed card name against the deck's, in either Unicode form (sameName).
+  const deckCard = deck?.cards.find((c) => sameName(c.name, entry.card)) ?? null
   const reversedDisabled = !!deck && !deck.supportsReversed
   const isReversed = entry.orientation === 'reversed' && !reversedDisabled
 

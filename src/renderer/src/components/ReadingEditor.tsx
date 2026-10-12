@@ -18,6 +18,7 @@ import type { Deck, Entry, Layout, LayoutPosition, Reading } from '../../../shar
 import ConfirmDialog from './ConfirmDialog'
 import EntryCard from './EntryCard'
 import LayoutBoard, { type PositionArt } from './layouts/LayoutBoard'
+import { sameName } from '../lib/sameName'
 
 interface ReadingEditorProps {
   reading: Reading
@@ -43,7 +44,8 @@ export default function ReadingEditor({
   onDeleteEntry
 }: ReadingEditorProps) {
   const deckOptions = decks.map((d) => d.name).filter(Boolean)
-  const currentDeck = decks.find((d) => d.name === reading.deck) ?? null
+  // The typed deck name against the deck's, in either Unicode form (sameName).
+  const currentDeck = decks.find((d) => sameName(d.name, reading.deck)) ?? null
   const activeLayout = layouts.find((l) => l.id === reading.layoutId) ?? null
 
   // The layout awaiting confirmation, or null. `window.confirm` let this be a
@@ -74,7 +76,7 @@ export default function ReadingEditor({
   const artForPosition = (positionId: string): PositionArt | undefined => {
     const entry = reading.entries.find((e) => e.positionId === positionId)
     if (!entry?.card || !currentDeck) return undefined
-    const card = currentDeck.cards.find((c) => c.name === entry.card)
+    const card = currentDeck.cards.find((c) => sameName(c.name, entry.card))
     if (!card?.image) return undefined
     return {
       url: `${window.api.decks.imageUrl(currentDeck.id, card.image)}?v=${card.imageVersion ?? 0}`,
@@ -94,10 +96,12 @@ export default function ReadingEditor({
             onChange={(e) => onChange({ title: e.target.value })}
             sx={{ flexGrow: 1 }}
           />
+          {/* Filled when marked, as in the card preview: an outlined secondary
+              chip draws the bar colour as text on the page (HTOO-572). */}
           <Chip
             label={isCorvath ? 'Corvath' : 'Manual'}
             color={isCorvath ? 'secondary' : 'default'}
-            variant="outlined"
+            variant={isCorvath ? 'filled' : 'outlined'}
             size="small"
             title="How this reading was created"
           />

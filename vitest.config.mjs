@@ -54,7 +54,10 @@ export default defineConfig({
           environment: 'jsdom',
           include: [
             'src/renderer/src/__tests__/**/*.test.{ts,tsx}',
-            'src/renderer/src/{components,pages,hooks,store}/**/__tests__/**/*.test.{ts,tsx}'
+            'src/renderer/src/{components,pages,hooks,store}/**/__tests__/**/*.test.{ts,tsx}',
+            // The palette and chip tests (HTOO-572). Without this line vitest
+            // collects nothing from themes/ and still reports a pass.
+            'src/renderer/src/themes/**/__tests__/**/*.test.{ts,tsx}'
           ],
           setupFiles: ['./src/renderer/src/__tests__/setup/vitest.setup.ts']
         }

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { Layout, Reading } from '../../../../shared/types'
+import type { Deck, Layout, Reading } from '../../../../shared/types'
 import ReadingEditor from '../ReadingEditor'
 
 /**
@@ -97,5 +97,43 @@ describe('applying a layout over an existing reading', () => {
     await chooseLayout(user)
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     expect(onApplyLayout).toHaveBeenCalledExactlyOnceWith(LAYOUTS[0])
+  })
+})
+
+describe('matching typed names to the deck (macos-chrome.md §8)', () => {
+  it('finds the deck and the card when the names are in the other Unicode form', () => {
+    // The deck and card names are decomposed (NFD, as macOS stores a file
+    // name); the reading holds them composed (NFC, as typed). Before sameName
+    // the entry read "No matching card in this deck."
+    const deck = {
+      id: 'd1',
+      name: 'Arcane\u0301',
+      suits: [],
+      pipRanks: [],
+      courtRanks: [],
+      supportsReversed: true,
+      cards: [
+        { id: 'c1', section: 'major', name: 'L\u2019E\u0301toile', meaning: 'Hope returns.' }
+      ],
+      createdAt: 'now',
+      updatedAt: 'now'
+    } as Deck
+    render(
+      <ReadingEditor
+        reading={{
+          ...reading([{ id: 'e1', topic: '', question: '', card: 'L\u2019\u00c9toile' }]),
+          deck: 'Arcan\u00e9'
+        }}
+        decks={[deck]}
+        layouts={LAYOUTS}
+        onChange={vi.fn()}
+        onApplyLayout={vi.fn()}
+        onAddEntry={vi.fn()}
+        onUpdateEntry={vi.fn()}
+        onDeleteEntry={vi.fn()}
+      />
+    )
+    expect(screen.queryByText('No matching card in this deck.')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue('Hope returns.')).toBeInTheDocument()
   })
 })

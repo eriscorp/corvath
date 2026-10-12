@@ -1,41 +1,134 @@
-import { FormControl, InputLabel, MenuItem, Select } from '@mui/material'
-import type { ReactElement } from 'react'
-import type { ThemeName } from '../../../shared/types'
-import { THEME_OPTIONS } from '../themes'
+import React from 'react'
+import { Box, ButtonBase, Typography } from '@mui/material'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import { THEME_NAMES, type ThemeName } from '@shared/types'
+import { themesByName } from '@renderer/themes'
 
-interface ThemePickerProps {
-  value: ThemeName
-  onChange: (name: ThemeName) => void
+// House theme picker: the themes as selectable preview cards (a swatch of each
+// palette + its name) rather than a bare dropdown. Shared idiom across the
+// Erisco/Hybrasyl apps (creidhne, taliesin, mabon) — copy this file into a new
+// app as-is; it only depends on @shared/types and the themesByName barrel.
+
+const THEME_LABELS: Record<ThemeName, string> = {
+  hybrasyl: 'Hybrasyl',
+  chadul: 'Chadul',
+  danaan: 'Danaan',
+  grinneal: 'Grinneal',
+  mundanes: 'Mundanes',
+  dubhaimid: 'Dubhaimid'
 }
 
-/**
- * The theme control, now living on the Settings page rather than in the title
- * bar — a permanent control in the window chrome for something a user sets once.
- *
- * The `labelId` is wired to a real `InputLabel`, so the combobox gets an
- * accessible name and a spec can reach it with
- * `getByRole('combobox', { name: 'Theme' })`. The house E2E doc prefers that over
- * a testid: an MUI `Select` with no linked label leaves `aria-labelledby` null
- * and cannot be found by role at all. The `theme-select` testid is kept because
- * three specs already use it and because it survives the label being reworded.
- */
-export default function ThemePicker({ value, onChange }: ThemePickerProps): ReactElement {
+// A live mini-preview of one theme, painted in THAT theme's own palette (not the
+// active one) so each card shows what it would look like.
+function ThemeSwatch({ name, label }: { name: ThemeName; label: string }): React.JSX.Element {
+  const p = themesByName[name].palette
+  const chips = [p.secondary.light, p.info.main, p.warning.main, p.primary.light]
   return (
-    <FormControl sx={{ minWidth: 220 }} size="small">
-      <InputLabel id="settings-theme-label">Theme</InputLabel>
-      <Select
-        labelId="settings-theme-label"
-        label="Theme"
-        value={value}
-        onChange={(e) => onChange(e.target.value as ThemeName)}
-        data-testid="theme-select"
-      >
-        {THEME_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
+    <Box
+      sx={{
+        bgcolor: p.background.default,
+        p: 1.25,
+        minHeight: 78,
+        // Fill the card, don't just sit in it. The grid stretches every card in
+        // a row to the tallest, so a swatch sized only by its own content gets
+        // letterboxed — the card's background shows as bars above and below the
+        // palette colour. It surfaced when one label wrapped to two lines and
+        // the single-line cards beside it were left short.
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: 1,
+        width: '100%'
+      }}
+    >
+      <Box sx={{ display: 'flex', gap: 0.75 }}>
+        {chips.map((c, i) => (
+          <Box
+            key={i}
+            sx={{
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
+              bgcolor: c,
+              border: '1px solid rgba(0,0,0,0.35)'
+            }}
+          />
         ))}
-      </Select>
-    </FormControl>
+      </Box>
+      <Typography sx={{ color: p.text.primary, fontWeight: 600, fontSize: '0.82rem' }}>
+        {label}
+      </Typography>
+    </Box>
   )
 }
+
+interface Props {
+  value: ThemeName
+  onChange: (theme: ThemeName) => void
+}
+
+function ThemePicker({ value, onChange }: Props): React.JSX.Element {
+  return (
+    <Box
+      role="radiogroup"
+      aria-label="Theme"
+      // Corvath's e2e specs reach the picker by this testid, and each card by
+      // `theme-option-<name>` below. The testid is the ThemeName, not the
+      // label: the name is the value that reaches settings.json.
+      data-testid="theme-select"
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+        gap: 1.5
+      }}
+    >
+      {THEME_NAMES.map((name) => {
+        const selected = value === name
+        return (
+          <ButtonBase
+            key={name}
+            role="radio"
+            aria-checked={selected}
+            aria-label={THEME_LABELS[name]}
+            data-testid={`theme-option-${name}`}
+            onClick={() => onChange(name)}
+            sx={{
+              // flex + full height so the swatch inside can stretch to the row
+              // height; `display: block` left it sized by its own content.
+              display: 'flex',
+              height: '100%',
+              textAlign: 'left',
+              borderRadius: 1,
+              overflow: 'hidden',
+              position: 'relative',
+              border: '2px solid',
+              // primary.main, not .light: the palette test holds main at 3:1 on
+              // the page and on paper, which a selection mark needs. On a light
+              // theme (danaan) .light is near the page colour (HTOO-572).
+              borderColor: selected ? 'primary.main' : 'divider',
+              transition: 'border-color 0.15s',
+              '&:hover': { borderColor: selected ? 'primary.main' : 'text.secondary' }
+            }}
+          >
+            <ThemeSwatch name={name} label={THEME_LABELS[name]} />
+            {selected && (
+              <CheckCircleIcon
+                sx={{
+                  position: 'absolute',
+                  top: 5,
+                  right: 5,
+                  fontSize: 20,
+                  color: 'primary.main',
+                  filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.6))'
+                }}
+              />
+            )}
+          </ButtonBase>
+        )
+      })}
+    </Box>
+  )
+}
+
+export default ThemePicker

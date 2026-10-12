@@ -8,18 +8,19 @@ import { formatErrorLine, type ErrorEntry } from '../shared/diagnostics'
  * Per-session ERROR log. One file per launch under `<userData>/logs`, keeping the
  * five most recent.
  *
- * **Errors only, never a trace.** Corvath spawns git constantly and polls on a
- * cadence; a debug log of that is a large file nobody reads, and it would put every
- * repository path the user watches on disk in exchange for nothing. What is here
- * is what a bug report needs: the things that went wrong this session.
+ * **Errors only, never a trace.** Corvath saves a data file 200 ms after each run
+ * of edits. A trace of those saves is a large file that nobody reads, and
+ * it would put the text of the user's readings and the paths of their imported
+ * card images on disk for no gain. What is here is what a bug report needs: the
+ * things that went wrong this session.
  *
  * **Scrubbed at CAPTURE — before the ring buffer, before the file.** That is the
  * invariant the whole module rests on, because it is what makes an on-disk log
  * already safe to attach to a public issue. There is no sanitising pass on the way
- * out; if this one is skipped, nothing downstream repairs it. WP10's constraint
- * lands exactly here: `github/tokenStore.ts` and `github/client.ts` each assert no
- * log line holds the token, and this module inherits that requirement without
- * inheriting either test — `session-log.test.ts` writes them again.
+ * out; if this one is skipped, nothing downstream repairs it. The module came from
+ * balor, which holds a GitHub token. Corvath holds no token, but the scrub is the
+ * shared house one, so `session-log.test.ts` still proves that a token-shaped
+ * string reaches neither the ring nor the disk.
  *
  * **Best-effort throughout.** A logging failure must never disturb the app: every
  * filesystem call swallows its error, and there is no path by which `captureError`

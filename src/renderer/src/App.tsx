@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Box, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material'
-import type { ThemeName, UpdateInfo } from '../../shared/types'
-import { hybrasylTheme, themes } from './themes'
+import type { ThemeName } from '../../shared/types'
+import { hybrasylTheme, themesByName } from './themes'
 import { useSettingsStore } from './store/settingsStore'
 import { useReadingsStore } from './store/readingsStore'
 import { useDecksStore } from './store/decksStore'
@@ -10,10 +10,12 @@ import { useDecks } from './hooks/useDecks'
 import { useLayouts } from './hooks/useLayouts'
 import TitleBar from './components/TitleBar'
 import SettingsPage from './pages/SettingsPage'
-import UpdateSnackbar from './components/UpdateSnackbar'
+import UpdateNotice from './components/UpdateNotice'
 import ReportIssueDialog from './components/ReportIssueDialog'
 import { useReportStore } from './store/reportStore'
-import NavBar, { type View } from './components/NavBar'
+import { useViewStore } from './store/viewStore'
+import { useAppMenu } from './lib/appMenu'
+import NavBar from './components/NavBar'
 import Readings from './pages/Readings'
 import Draw from './pages/Draw'
 import DeckBuilder from './pages/DeckBuilder'
@@ -57,18 +59,16 @@ function App(): React.JSX.Element {
   const themeName = useSettingsStore((s) => s.theme)
   const hydrated = useSettingsStore((s) => s.hydrated)
   const setTheme = useSettingsStore((s) => s.setTheme)
-  const [view, setView] = useState<View>('readings')
+  // In a store, not here: the macOS menu switches pages too (viewStore.ts).
+  const view = useViewStore((s) => s.view)
+  const setView = useViewStore((s) => s.setView)
   // Lifted so the Draw tab can select the reading it produces when it hands off
   // to the Readings tab.
   const [selectedReadingId, setSelectedReadingId] = useState<string | null>(null)
   const decksApi = useDecks()
   const layoutsApi = useLayouts()
-  const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const reportOpen = useReportStore((s) => s.open)
   const setReportOpen = useReportStore((s) => s.setOpen)
-
-  // Surface an available-update notification from main (best-effort, once).
-  useEffect(() => window.api.onUpdateAvailable(setUpdate), [])
 
   // Hydrate every store once at startup, so pages no longer reload from disk
   // when they remount on a tab switch. Once settings land (theme is known), tell
@@ -83,6 +83,10 @@ function App(): React.JSX.Element {
     void useLayoutsStore.getState().hydrate()
   }, [])
 
+  // The macOS application menu: run its commands and report what it greys out,
+  // once settings have hydrated. Does nothing off macOS.
+  useAppMenu(hydrated)
+
   // Keep the themed scrollbar CSS variables in sync with the active theme.
   useEffect(() => {
     const colors = scrollbarColors[themeName] ?? scrollbarColors.hybrasyl
@@ -94,7 +98,7 @@ function App(): React.JSX.Element {
 
   const changeTheme = (name: ThemeName): void => setTheme(name)
 
-  const theme = themes[themeName] ?? hybrasylTheme
+  const theme = themesByName[themeName] ?? hybrasylTheme
 
   // Gate first paint on settings hydration so the app never flashes the default
   // theme. In practice the window stays hidden until app:ready fires (just after
@@ -165,7 +169,9 @@ function App(): React.JSX.Element {
           />
         )}
 
-        <UpdateSnackbar update={update} onDismiss={() => setUpdate(null)} />
+        {/* The update-check module's notice. It checks once, 10 s after it
+            mounts, and shows only a newer version that the user did not close. */}
+        <UpdateNotice />
         {/* Mounted here rather than in the About card because it has two
             openers: that button, and the error boundary's own copy. */}
         <ReportIssueDialog open={reportOpen} onClose={() => setReportOpen(false)} />

@@ -24,7 +24,8 @@ files:
   - bundled/** # shipped deck art, read at runtime from <appRoot>/bundled/decks/
 # `bundled/` is 83 MB of deck art. Keep it OUT of the asar so it is read as ordinary
 # files (main resolves it via join(__dirname, '../../bundled/decks')) and so the archive
-# stays small enough to be cheap to open.
+# stays small enough to be cheap to open. The cost: the art is outside the asar
+# integrity check (see enableEmbeddedAsarIntegrityValidation below).
 asarUnpack:
   - bundled/**
 win:
@@ -45,13 +46,40 @@ win:
         - x64
 portable:
   artifactName: ${name}-${version}-portable.${ext}
-  # The portable exe is an NSIS self-extracting archive that decompresses to
-  # %TEMP% BEFORE electron exists, so no in-app splash can cover it — without
-  # this the stub runs silent and the user gets several seconds of nothing.
-  # A FROZEN FRAME of resources/splash.html at the same 420x260 as the splash
-  # BrowserWindow, so the handoff reads as one boot rather than two screens.
-  # Regenerate with: node scripts/make-portable-splash.mjs
-  splashImage: build/portable-splash.bmp
+  # NO `splashImage`, on purpose (HTOO-466). With one, the NSIS stub runs in GUI
+  # mode: it paints the bitmap, hides its own "Setup" dialog, extracts, runs the
+  # app, and — when the app exits — re-shows that hidden dialog for its completion
+  # step before `AutoCloseWindow` closes it. That re-show is a blank window that
+  # flashes after the app's own window has gone, on every close. There is no hook
+  # to stop it: electron-builder reads `portable.nsi` verbatim for this target.
+  #
+  # Without it the stub runs `SetSilent silent` and owns no window. The cost is a
+  # busy cursor, and no image, while the stub extracts the app to %TEMP% on each
+  # launch. The in-app splash (`resources/splash.html`) covers everything from
+  # electron's first frame on. Do not add the image back to fill that gap: it is
+  # the flash's cause. scripts/portable-config.test.mjs pins the absence.
+  #
+  # Extract to a directory unique to each LAUNCH, not to each BUILD (HTOO-351,
+  # fault 2). Left unset, electron-builder bakes one KSUID into the exe at build
+  # time, so every copy of a build extracts to the same $TEMP\<ksuid>. A second
+  # launch then runs `RMDir /r` on the directory the RUNNING copy executes from
+  # and copies over its locked files, which ends in NSIS's own "Corvath cannot
+  # be closed" Retry/Cancel box. With a directory per launch, the second copy
+  # reaches Electron, loses requestSingleInstanceLock and exits, and the first
+  # window comes forward.
+  #
+  # TRUE, not the documented `false`. app-builder-lib 26.17.0
+  # (NsisTarget.js:263) resolves this as
+  #   if (typeof unpackDirName === "string" || !unpackDirName)
+  #     defines.UNPACK_DIR_NAME = unpackDirName || generateKsuid()
+  # so `false` takes the branch and still gets a build-time KSUID. Only a truthy
+  # non-string leaves UNPACK_DIR_NAME undefined, and portable.nsi then falls back
+  # to $PLUGINSDIR\app, which NSIS makes unique per process. Do not "correct"
+  # this to `false`. Creidhne measured it (HTOO-351).
+  #
+  # The cost: a killed stub's folder has a name no later launch reuses, so
+  # src/main/portableSweep.ts removes it (HTOO-494).
+  unpackDirName: true
 nsis:
   # Predictable name for the release workflow's sign + upload steps. The default
   # is "Corvath Setup <version>.exe", with spaces, which every path in that
@@ -170,4 +198,27 @@ electronFuses:
   enableNodeCliInspectArguments: false # no --inspect into the main process
   enableNodeOptionsEnvironmentVariable: false # no NODE_OPTIONS injection at launch
   onlyLoadAppFromAsar: true # refuse a side-loaded app/ dir next to the asar
+  # Electron checks app.asar against the hash electron-builder embeds in the
+  # executable, file by file as it reads (HTOO-381; house decision, Sabrael,
+  # 2026-09-28). The build side already ran without it: electron-builder writes the
+  # per-file block hashes and the embedded hash whatever the fuse says, so this only
+  # makes Electron enforce them. Enforced on Windows and macOS; Linux ignores it.
+  #
+  # A changed asar is then a DEAD app: exit code 1 and `ASAR Integrity Violation`
+  # on stderr only, no window and no message. That is why it lands WITH the reader:
+  # scripts/verify-fuses.mjs asserts index 4 in each release build job, and the
+  # release process starts the packaged build before tagging (CHANGELOG header).
+  #
+  # THE DECK ART IS NOT COVERED. `bundled/` (83 MB) is asarUnpack'd above, so the
+  # real app.asar is about 7 MB of code, splash and CHANGELOG. The asar header
+  # carries hashes for the unpacked files too, but Electron does not check them
+  # (epona measured it: a changed unpacked file loads). So the fuse guards the
+  # code, not the art. On Windows the hash lives in the inner corvath.exe, and the
+  # release job signs only the outer setup and portable exes, so this catches a
+  # damaged or changed package, not a local attacker.
+  #
+  # Cost (HTOO-399, measured in oghma): nothing warm, 10-25 ms on a launch from
+  # new files, which is every portable start. Corvath's own before/after launch
+  # timing is in the commit that turned this on.
+  enableEmbeddedAsarIntegrityValidation: true
   resetAdHocDarwinSignature: true # required once fuses are flipped on mac arm64

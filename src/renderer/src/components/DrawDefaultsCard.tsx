@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
-import { FormControl, InputLabel, MenuItem, Select, Stack, Typography } from '@mui/material'
+import { FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from '@mui/material'
 import type { Deck, DrawMode, Layout } from '../../../shared/types'
-import { cardDescSx, cardHeadingSx } from '../lib/settingsCardSx'
+import { cardDescSx, cardHeadingSx, cardSx } from '../lib/settingsCardSx'
 import { useSettingsStore } from '../store/settingsStore'
 
 interface DrawDefaultsCardProps {
@@ -23,6 +23,9 @@ const NONE = ''
  * **A default is a preference, not a constraint.** Every one of them can still be
  * changed on the Draw tab itself, and each can be set back to "None" — a control
  * the user cannot un-set is a worse bug than the one it was added to fix.
+ *
+ * The card owns its own `Paper`, as the About and Appearance cards do, so the
+ * Settings page places it bare.
  */
 export default function DrawDefaultsCard({ decks, layouts }: DrawDefaultsCardProps): ReactElement {
   const defaultDeckId = useSettingsStore((s) => s.defaultDeckId)
@@ -39,8 +42,10 @@ export default function DrawDefaultsCard({ decks, layouts }: DrawDefaultsCardPro
   const layoutValue = layouts.some((l) => l.id === defaultLayoutId) ? defaultLayoutId : NONE
 
   return (
-    <>
-      <Typography sx={cardHeadingSx}>Draw defaults</Typography>
+    <Paper sx={cardSx} data-testid="draw-defaults-card">
+      <Typography variant="h6" sx={cardHeadingSx}>
+        Draw defaults
+      </Typography>
       <Typography variant="body2" sx={cardDescSx}>
         What the Draw tab starts on. You can still change any of them for a single draw.
       </Typography>
@@ -103,6 +108,6 @@ export default function DrawDefaultsCard({ decks, layouts }: DrawDefaultsCardPro
           </Select>
         </FormControl>
       </Stack>
-    </>
+    </Paper>
   )
 }

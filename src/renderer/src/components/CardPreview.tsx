@@ -77,12 +77,15 @@ export default function CardPreview({ card, onClose }: CardPreviewProps) {
             <Stack spacing={1.5} sx={{ minWidth: 220, maxWidth: 340, pt: 1 }}>
               <Box>
                 <Typography variant="h5">{card.name}</Typography>
+                {/* A reversed card is a FILLED secondary chip. Outlined, it drew
+                    the bar colour as text on the page, which most themes cannot
+                    read (corvathChips.test.tsx, HTOO-572). */}
                 {card.orientation && (
                   <Chip
                     label={card.orientation}
                     size="small"
                     color={card.orientation === 'reversed' ? 'secondary' : 'default'}
-                    variant="outlined"
+                    variant={card.orientation === 'reversed' ? 'filled' : 'outlined'}
                     sx={{ mt: 0.5, textTransform: 'capitalize' }}
                   />
                 )}

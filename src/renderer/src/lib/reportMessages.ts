@@ -10,6 +10,9 @@
  *   is all of them except the two that failed before the copy. That is the whole
  *   design of `openIssue` surfacing in the copy: the browser step can fail in ways
  *   corvath cannot fix, and none of them lose the user's work.
+ * - **No message names the clipboard when the copy failed.** Since Electron 44 the
+ *   write is async and can fail or time out (HTOO-553). `copied` on the result
+ *   says which case this is.
  * - **`truncated` is not phrased as an error.** Nothing went wrong: the report was
  *   longer than a link may be, and the fix is one paste. Wording it as a failure
  *   would send people back to re-type a description that is already in their hands.
@@ -53,6 +56,21 @@ export function composeIssueBody(description: string, diagnostics: string): stri
 
 /** The outcome of **Open GitHub issue**. */
 export function openIssueMessage(result: OpenIssueResult): ReportMessage {
+  // The clipboard write failed or timed out (HTOO-553). Every sentence below
+  // promises a clipboard, so none of them may be used.
+  if (!result.copied) {
+    return result.ok
+      ? {
+          severity: 'info',
+          text: result.truncated
+            ? 'Issue opened in your browser, but Corvath could not copy the report and the link holds only part of it. Copy the report to your clipboard, then paste it into the issue.'
+            : 'Issue opened in your browser. Corvath could not copy the report to your clipboard, but the issue holds all of it.'
+        }
+      : {
+          severity: 'error',
+          text: `Corvath could not open the issue page or copy the report. Copy the report to your clipboard, then paste it into a new issue at ${INTAKE}.`
+        }
+  }
   if (result.ok) {
     return result.truncated
       ? {

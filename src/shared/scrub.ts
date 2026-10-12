@@ -17,7 +17,7 @@
 // Balor added the credential rules because it captures git's own stderr, and git
 // echoes the remote URL — sometimes carrying a token — in most of its failure
 // messages. Corvath spawns nothing, holds no credential, and talks to one
-// unauthenticated endpoint (the GitHub releases API in `updateCheck.ts`). The
+// unauthenticated endpoint (the house version manifest in `updateCheck.ts`). The
 // three generic container rules are kept anyway as cheap insurance: they match the
 // SHAPE a secret travels in rather than guessing at its value, so they cannot go
 // stale the way a prefix match would.

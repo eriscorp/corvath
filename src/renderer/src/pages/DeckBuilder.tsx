@@ -3,6 +3,7 @@ import { Alert, Box, Snackbar, Typography } from '@mui/material'
 import type { UseDecks } from '../hooks/useDecks'
 import DeckList from '../components/decks/DeckList'
 import DeckEditor from '../components/decks/DeckEditor'
+import { useMenuRequest } from '../lib/useMenuRequest'
 
 interface Toast {
   message: string
@@ -57,6 +58,10 @@ export default function DeckBuilder({ api }: DeckBuilderProps) {
       setToast({ message: result.error, severity: 'error' })
     }
   }
+
+  // File → Import Deck… (macOS) runs the Import Deck button, also when this
+  // page mounts after the click.
+  useMenuRequest('importDeck', () => void handleImport())
 
   const handleExport = async (id: string): Promise<void> => {
     const result = await exportDeck(id)

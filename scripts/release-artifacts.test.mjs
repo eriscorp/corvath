@@ -92,27 +92,8 @@ describe('every configured target reaches the release', () => {
     expect(workflow).not.toMatch(/--win \w/)
   })
 
-  it('signs every Windows artifact it publishes, or none of them', () => {
-    // Corvath's signing steps are CONDITIONAL, unlike taliesin's -- the release
-    // header commits to degrading to unsigned artifacts when no SSL.com
-    // credentials are set, rather than failing the build. That choice is kept,
-    // and the guarantee is preserved a different way: both steps carry the SAME
-    // `steps.signing` condition, so the pair signs together or not at all.
-    //
-    // Signing one of the two would be worse than signing neither. A user handed
-    // a signed installer beside an unsigned portable exe cannot read that as
-    // "credentials are configured for one artifact".
-    const signSteps = workflow.match(/uses: sslcom\/esigner-codesign@/g) ?? []
-    const windowsArtifacts = EXPECTED.filter((e) => e.suffix.endsWith('.exe'))
-    expect(signSteps).toHaveLength(windowsArtifacts.length)
-
-    const conditions = workflow.match(/if: steps\.signing\.outputs\.enabled == 'true'/g) ?? []
-    expect(conditions).toHaveLength(windowsArtifacts.length)
-
-    for (const { suffix } of windowsArtifacts) {
-      expect(workflow).toContain(`${suffix}\n          override: true`)
-    }
-  })
+  // Signing (one step for both exes, one guard for both steps, each signature
+  // read back) is pinned in release-signing.test.mjs (HTOO-517).
 
   it('uploads every Windows artifact out of the build job', () => {
     // The step between packaging and publishing, and the one the release job's
@@ -141,5 +122,24 @@ describe('every configured target reaches the release', () => {
     // updateCheck.ts notifies and downloads nothing -- so publishing it would
     // hand users a file with no consumer.
     expect(workflow).not.toContain('.blockmap')
+  })
+})
+
+describe('after the release is published', () => {
+  it('reminds the releaser to publish the version manifest, before Discord', () => {
+    // The workflow has no credential for the house version manifest, so a
+    // person runs `npm run publish:version` (update-check module v1, HTOO-382).
+    // Until they do, running copies of Corvath do not see the release. The step
+    // comes before Discord, so a failed webhook cannot skip it (epona's case).
+    const remind = workflow.indexOf('- name: Remind to publish the version manifest')
+    const release = workflow.indexOf('- name: Create GitHub Release')
+    const discord = workflow.indexOf('- name: Notify Discord')
+    expect(remind).toBeGreaterThan(release)
+    expect(remind).toBeLessThan(discord)
+    expect(workflow.slice(remind, discord)).toContain(
+      'npm run publish:version -- ${{ github.ref_name }}'
+    )
+    const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'))
+    expect(pkg.scripts['publish:version']).toBe('node scripts/publish-version.mjs')
   })
 })

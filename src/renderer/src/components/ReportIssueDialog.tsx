@@ -35,7 +35,9 @@ import {
  * **Every button leaves the report on the clipboard.** Open GitHub issue copies
  * before it opens, so a link trimmed to fit is completed by one paste and a browser
  * that never appears has cost nothing. That is why the copy is unconditional in
- * `main/diagnostics.ts` rather than conditional on truncation.
+ * `main/diagnostics.ts` rather than conditional on truncation. The copy can fail
+ * since Electron 44 (HTOO-553). Then `copied` is false and the message does not
+ * claim a copy; Copy to clipboard rejects and says the copy failed.
  *
  * The block is fetched on OPEN rather than at mount — the dialog is mounted closed
  * in `App`, and a ring buffer read that nobody asked for is a read of stale state by

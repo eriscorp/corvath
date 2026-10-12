@@ -11,8 +11,12 @@
 // `shell.openExternal` (in `main/diagnostics.ts`): the pure screen first, then the
 // authority that owns the format.
 
-const TRUNCATION_NOTE =
+export const TRUNCATION_NOTE =
   '\n\n_(diagnostics truncated — the full report is on your clipboard; paste it here)_'
+
+/** The note when the clipboard write failed: the clipboard holds no report. */
+export const TRUNCATION_NOTE_NOT_COPIED =
+  '\n\n_(diagnostics truncated — use Copy to clipboard in the app, then paste the full report here)_'
 
 export interface IssueUrlParams {
   owner: string
@@ -50,11 +54,14 @@ export function buildIssueUrl({
  * returned URL is short enough because that is the condition the search accepted.
  *
  * The caller copies the FULL body to the clipboard before opening the URL, so a
- * truncated prefill is always completable by paste.
+ * truncated prefill is completable by paste. When that copy fails, the caller
+ * gives `TRUNCATION_NOTE_NOT_COPIED` as `note`, so the issue does not point at an
+ * empty clipboard.
  */
 export function truncateBodyForUrl(
   p: IssueUrlParams,
-  maxUrlLen: number
+  maxUrlLen: number,
+  note: string = TRUNCATION_NOTE
 ): { url: string; truncated: boolean } {
   const full = buildIssueUrl(p)
   if (full.length <= maxUrlLen) return { url: full, truncated: false }
@@ -65,7 +72,7 @@ export function truncateBodyForUrl(
   let best = ''
   while (lo <= hi) {
     const mid = (lo + hi) >> 1
-    const candidate = body.slice(0, mid) + TRUNCATION_NOTE
+    const candidate = body.slice(0, mid) + note
     if (buildIssueUrl({ ...p, body: candidate }).length <= maxUrlLen) {
       best = candidate
       lo = mid + 1

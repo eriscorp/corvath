@@ -1,5 +1,6 @@
 import type { Entry, Layout, Orientation, Reading, ReadingSource } from '../../../shared/types'
 import { nowIso, uid } from './deck'
+import { nameKey } from './sameName'
 
 export interface ImportResult {
   readings: Reading[]
@@ -73,8 +74,10 @@ export function parseReadingsImport(text: string, layouts: Layout[]): ImportResu
     const notes = asString(r.notes) ?? ''
 
     const layoutName = asString(r.layout)?.trim()
-    const layout = layoutName
-      ? (layouts.find((l) => l.name.toLowerCase() === layoutName.toLowerCase()) ?? null)
+    // Case-blind, and blind to the Unicode form (sameName.ts).
+    const layoutKey = layoutName && nameKey(layoutName).toLowerCase()
+    const layout = layoutKey
+      ? (layouts.find((l) => nameKey(l.name).toLowerCase() === layoutKey) ?? null)
       : null
     if (layoutName && !layout) errors.push(`${where}layout "${layoutName}" not found.`)
 

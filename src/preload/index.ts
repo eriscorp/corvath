@@ -11,11 +11,20 @@ import type {
   OpenIssueResult,
   RendererErrorReport,
   Settings,
-  TarotApi,
-  UpdateInfo
+  TarotApi
 } from '../shared/types'
+import type { UpdateCheckResult } from '../shared/updateVersion'
+import {
+  MENU_COMMAND_CHANNEL,
+  MENU_STATE_CHANNEL,
+  type MenuMessage,
+  type MenuState
+} from '../shared/appMenu'
 
 const api: TarotApi = {
+  // A sandboxed preload has `process.platform`; the renderer has no `process`.
+  platform: process.platform,
+
   readings: {
     getAll: (): Promise<Reading[]> => ipcRenderer.invoke('readings:getAll'),
     save: (readings: Reading[]): Promise<void> => ipcRenderer.invoke('readings:save', readings),
@@ -53,6 +62,7 @@ const api: TarotApi = {
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
   revealSettings: (): void => ipcRenderer.send('app:revealSettings'),
   readChangelog: (): Promise<string> => ipcRenderer.invoke('app:readChangelog'),
+  checkForUpdate: (): Promise<UpdateCheckResult> => ipcRenderer.invoke('app:checkForUpdate'),
   diagnostics: {
     build: (): Promise<string> => ipcRenderer.invoke('diagnostics:build'),
     openIssue: (title: string, body: string): Promise<OpenIssueResult> =>
@@ -65,11 +75,6 @@ const api: TarotApi = {
       ipcRenderer.send('diagnostics:reportError', report),
     revealLogs: (): void => ipcRenderer.send('diagnostics:revealLogs')
   },
-  onUpdateAvailable: (callback: (info: UpdateInfo) => void): (() => void) => {
-    const listener = (_e: IpcRendererEvent, info: UpdateInfo): void => callback(info)
-    ipcRenderer.on('update:available', listener)
-    return () => ipcRenderer.removeListener('update:available', listener)
-  },
   window: {
     minimize: (): void => ipcRenderer.send('window:minimize'),
     toggleMaximize: (): void => ipcRenderer.send('window:toggleMaximize'),
@@ -80,6 +85,16 @@ const api: TarotApi = {
       ipcRenderer.on('window:maximizeChange', listener)
       return () => ipcRenderer.removeListener('window:maximizeChange', listener)
     }
+  },
+  // The macOS application menu. The listener is wrapped so the IpcRendererEvent
+  // never crosses the bridge: the renderer gets the payload only.
+  menu: {
+    onCommand: (cb: (msg: MenuMessage) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, msg: MenuMessage): void => cb(msg)
+      ipcRenderer.on(MENU_COMMAND_CHANNEL, listener)
+      return () => ipcRenderer.removeListener(MENU_COMMAND_CHANNEL, listener)
+    },
+    setState: (state: MenuState): void => ipcRenderer.send(MENU_STATE_CHANNEL, state)
   }
 }
 

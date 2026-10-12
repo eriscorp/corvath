@@ -1,6 +1,37 @@
+import type { UpdateCheckResult } from './updateVersion'
+import type { MenuMessage, MenuState } from './appMenu'
+
 export type Orientation = 'upright' | 'reversed'
 
 export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
+
+/** The six themes, in the order the theme picker shows them. Main validates a
+ *  stored theme against its own copy in `main/schemas`. */
+export const THEME_NAMES: ThemeName[] = [
+  'hybrasyl',
+  'danaan',
+  'chadul',
+  'grinneal',
+  'mundanes',
+  'dubhaimid'
+]
+
+/**
+ * The "corporate/plain" themes: a flat navy bar with white text and no edge.
+ * `chromeContrast.test.tsx` uses it to tell them from the decorated themes.
+ */
+export const PLAIN_CHROME_THEMES: ThemeName[] = ['mundanes', 'dubhaimid']
+
+/**
+ * The decorated themes whose bar text (`secondary.contrastText`) is dark. A
+ * dark edge outlines LIGHT text; around dark text it merges with the glyph and
+ * doubles its edges, so these bars are engraved instead (a thin cream edge
+ * below and right, as if cut into the bar). An explicit list, not a luminance
+ * rule in the component, so a palette tweak near the line cannot flip a theme's
+ * chrome by accident (HTOO-572). `chromeContrast.test.tsx` fails when the list
+ * and the palettes disagree.
+ */
+export const ENGRAVED_CHROME_THEMES: ThemeName[] = ['danaan', 'grinneal']
 
 /** A single card / question within a reading. */
 export interface Entry {
@@ -203,16 +234,12 @@ export interface ReadingExportResult {
   error?: string
 }
 
-/** A newer release advertised to the renderer (notification only — no auto-download). */
-export interface UpdateInfo {
-  /** Version of the latest release (tag without a leading `v`). */
-  version: string
-  /** Release page to open in the browser. */
-  url: string
-}
-
 /** The surface exposed to the renderer on `window.api`. */
 export interface TarotApi {
+  /** `process.platform` from the preload. The renderer reads it, never the
+   *  Node global (a sandboxed renderer has none). */
+  platform: string
+
   readings: {
     getAll(): Promise<Reading[]>
     save(readings: Reading[]): Promise<void>
@@ -244,8 +271,13 @@ export interface TarotApi {
   saveSettings(settings: Settings): Promise<void>
   /** Signal the main process that the renderer has hydrated; reveals the window. */
   appReady(): void
-  /** Subscribe to an available-update notification; returns an unsubscribe function. */
-  onUpdateAvailable(callback: (info: UpdateInfo) => void): () => void
+  /**
+   * The update check (update-check module v1): main reads the house version
+   * manifest and compares it with this build. Takes no argument, because main
+   * owns the version, the manifest key and the release path. Never rejects on a
+   * network failure: "up to date" and "could not tell" are different values.
+   */
+  checkForUpdate(): Promise<UpdateCheckResult>
   /** This build's version string, for the About card. */
   getAppVersion(): Promise<string>
   /** Open the corvath data folder in the OS file manager. */
@@ -265,10 +297,23 @@ export interface TarotApi {
     revealLogs(): void
   }
   window: WindowControls
+  /** The macOS application menu. Unused elsewhere: there is no menu to drive. */
+  menu: {
+    /** Listen for menu commands; returns the unsubscribe. */
+    onCommand(cb: (msg: MenuMessage) => void): () => void
+    /** Report what the menu greys out. */
+    setState(state: MenuState): void
+  }
 }
 
-/** The outcome of opening a prefilled issue on the public intake repository. */
-export type OpenIssueResult = { ok: true; truncated: boolean } | { ok: false; reason: 'unsafe-url' }
+/**
+ * The outcome of opening a prefilled issue on the public intake repository.
+ * `copied` is false when the clipboard write failed or timed out: the page still
+ * opens, and the message says the clipboard holds no report.
+ */
+export type OpenIssueResult =
+  | { ok: true; truncated: boolean; copied: boolean }
+  | { ok: false; reason: 'unsafe-url'; copied: boolean }
 
 /** One captured error, as the renderer forwards it to main. */
 export interface RendererErrorReport {
