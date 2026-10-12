@@ -79,12 +79,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           Something went wrong.
         </Typography>
         {/* Names what is safe, because the next thing this person does is decide
-            whether to close Corvath. Nothing here touches a repository: every git
-            mutation runs in main behind a per-root lock, and a dead renderer starts
-            no new one. */}
+            whether to close Corvath. A screen error does not reach the data files:
+            the renderer only asks main to save, and main writes each file whole (a
+            .tmp file, then a rename, with a .bak copy kept). An edit goes to main
+            200 ms after the last keystroke, and Reload sends an edit that is still
+            waiting (the beforeunload flush in store/persist.ts). */}
         <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 520 }}>
-          Corvath hit an unexpected error and could not draw this screen. Your repositories are
-          untouched. Report what happened, or reload and carry on.
+          Corvath hit an unexpected error and could not draw this screen. Your saved readings, decks
+          and spreads are safe. Report what happened, or reload and carry on.
         </Typography>
         <Stack direction="row" sx={{ gap: 2, mt: 1 }}>
           <Button variant="contained" onClick={() => this.setState({ reportOpen: true })}>
