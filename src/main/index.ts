@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, clipboard, dialog, ipcMain, protocol, session } from 'electron'
+import originalFs from 'original-fs'
 import { join, extname } from 'path'
 import { readFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -14,6 +15,7 @@ import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
 import { pickerDialog, withPickerStart } from './pickerStart'
 import { shouldDisableHardwareAcceleration, REMOTE_SESSION_CSS } from './remoteSession'
+import { sweepPortableLeftovers } from './portableSweep'
 import {
   cspForRenderer,
   guardIpc,
@@ -33,6 +35,9 @@ import {
 // Windows only, that redirect did nothing elsewhere: on macOS no variable moves
 // appData, so every spec ran against the real profile and a spec that saves
 // wrote it. Corvath has no roaming migration to guard.
+/** How long after boot the portable sweep waits (portableSweep.ts). */
+const PORTABLE_SWEEP_DELAY_MS = 30_000
+
 const COMPANY = 'Erisco'
 const APP_DIR = 'Corvath'
 const localAppData =
@@ -391,6 +396,22 @@ app.whenReady().then(async () => {
     }
   )
   setTimeout(revealMainWindow, 15000)
+
+  // Portable exe only: delete the %TEMP% unpack folders that killed launches
+  // left behind. Delayed so it does not compete with boot for the disk, and
+  // unref'd so it never holds the process open. See portableSweep.ts for why
+  // each of its rules is safe (HTOO-494). A packaged app has no console, so a
+  // failure goes to the session log.
+  setTimeout(() => {
+    void sweepPortableLeftovers({
+      // original-fs, not fs: the patched fs opens a leftover's app.asar and then
+      // holds it, so every rename is refused.
+      fs: originalFs.promises,
+      execPath: process.execPath,
+      isPortable: app.isPackaged && Boolean(process.env['PORTABLE_EXECUTABLE_DIR']),
+      onError: (message) => captureError({ source: 'portable-sweep', message })
+    })
+  }, PORTABLE_SWEEP_DELAY_MS).unref()
 
   createWindow()
 

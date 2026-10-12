@@ -57,6 +57,28 @@ portable:
   # launch. The in-app splash (`resources/splash.html`) covers everything from
   # electron's first frame on. Do not add the image back to fill that gap: it is
   # the flash's cause. scripts/portable-config.test.mjs pins the absence.
+  #
+  # Extract to a directory unique to each LAUNCH, not to each BUILD (HTOO-351,
+  # fault 2). Left unset, electron-builder bakes one KSUID into the exe at build
+  # time, so every copy of a build extracts to the same $TEMP\<ksuid>. A second
+  # launch then runs `RMDir /r` on the directory the RUNNING copy executes from
+  # and copies over its locked files, which ends in NSIS's own "Corvath cannot
+  # be closed" Retry/Cancel box. With a directory per launch, the second copy
+  # reaches Electron, loses requestSingleInstanceLock and exits, and the first
+  # window comes forward.
+  #
+  # TRUE, not the documented `false`. app-builder-lib 26.17.0
+  # (NsisTarget.js:263) resolves this as
+  #   if (typeof unpackDirName === "string" || !unpackDirName)
+  #     defines.UNPACK_DIR_NAME = unpackDirName || generateKsuid()
+  # so `false` takes the branch and still gets a build-time KSUID. Only a truthy
+  # non-string leaves UNPACK_DIR_NAME undefined, and portable.nsi then falls back
+  # to $PLUGINSDIR\app, which NSIS makes unique per process. Do not "correct"
+  # this to `false`. Creidhne measured it (HTOO-351).
+  #
+  # The cost: a killed stub's folder has a name no later launch reuses, so
+  # src/main/portableSweep.ts removes it (HTOO-494).
+  unpackDirName: true
 nsis:
   # Predictable name for the release workflow's sign + upload steps. The default
   # is "Corvath Setup <version>.exe", with spaces, which every path in that
