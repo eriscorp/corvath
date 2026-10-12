@@ -25,6 +25,18 @@ name: CI
 # 15 ms where a dev box's is finer. Fire this by hand before a release or a
 # platform-shaped change:
 #   gh workflow run ci.yml --ref <branch>
+
+# CHECKOUT DEPTH: 1, the `actions/checkout` default, on purpose (HTOO-328).
+# A depth-1 clone has no parents for the commit it checks out, so every commit
+# reads as a root commit. Nothing in ci.yml or release.yml reads the CLONE's
+# history. No file in src/, the unit tests or the e2e specs runs git or parses
+# its output, and none of them imports child_process, so the e2e job in ci.yml
+# drives an app that reads no git. validate-linux.mjs runs git on the
+# developer's machine only, changelog-extract.mjs reads CHANGELOG.md, and the
+# release notes come from the GitHub API. So depth 1 gives no wrong answer
+# today. Set `fetch-depth: 0` on a job the moment one of its steps reads commit
+# parents, `merge-base`, ahead/behind or `git describe` from the checkout.
+
 on:
   workflow_dispatch:
 
@@ -43,6 +55,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -79,6 +92,7 @@ jobs:
     needs: validate
 
     steps:
+      # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
