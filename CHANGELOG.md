@@ -113,6 +113,7 @@ keeps all of your data on your own machine.
   interface libraries two times. It also no longer decodes a 2.3 MB image to draw
   an 84-pixel logo. The packaged archive now holds about 950 files, down from
   about 38,700. The images in it total 266 KB, down from 4.7 MB.
+- **Corvath now runs on Electron 44.** It needs macOS 13 or later and a 64-bit system.
 
 ### Fixed
 

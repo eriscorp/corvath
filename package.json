@@ -12,7 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "e2e": "npm run build && playwright test",
     "e2e:only": "playwright test",
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --build --force",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --fix",
@@ -20,7 +20,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "install-electron && electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win",
     "build:unpack": "npm run build && electron-builder --dir"
   },
@@ -104,7 +104,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.11",
-    "electron": "^41.1.0",
+    "electron": "^44.7.0",
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.4",
@@ -118,5 +118,11 @@
     "vite": "^7.3.6",
     "vitest": "^4.1.11",
     "zustand": "^5.0.14"
+  },
+  "//allowScripts": "npm 12 runs a dependency's install script only when this block approves it, and it skips the rest SILENTLY: a warning at the end of npm install or npm ci, exit 0 (HTOO-542). esbuild's postinstall selects its platform binary. electron-winstaller is denied: its script only selects a 7-Zip binary for Squirrel.Windows installers, and electron-builder.yml ships NSIS and portable only. fsevents is the macOS file watcher behind vite, rollup and Playwright; it is optional and installs on macOS only, so an npm ci on Windows or Linux never shows that it needs an approval. electron is absent: since Electron 42 it has no install script. The project's OWN postinstall runs install-electron instead (a no-op when the binary is there), because electron-vite dev reads the binary's path without require(), so a fresh clone could not run npm run dev ('Electron uninstall') without it (HTOO-553). Approvals are by name, never pkg@version: a pinned approval stops matching at the next bump. npm install-scripts ls reports anything new.",
+  "allowScripts": {
+    "esbuild": true,
+    "electron-winstaller": false,
+    "fsevents": true
   }
 }
