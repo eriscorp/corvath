@@ -94,10 +94,12 @@ export default function ReadingEditor({
             onChange={(e) => onChange({ title: e.target.value })}
             sx={{ flexGrow: 1 }}
           />
+          {/* Filled when marked, as in the card preview: an outlined secondary
+              chip draws the bar colour as text on the page (HTOO-572). */}
           <Chip
             label={isCorvath ? 'Corvath' : 'Manual'}
             color={isCorvath ? 'secondary' : 'default'}
-            variant="outlined"
+            variant={isCorvath ? 'filled' : 'outlined'}
             size="small"
             title="How this reading was created"
           />
