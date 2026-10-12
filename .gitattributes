@@ -10,7 +10,7 @@
 
 # Explicitly binary, so git never tries to translate them and never offers them
 # as a text diff. The list states the format; git's own guess reads only the
-# first 8000 bytes for a NUL. Corvath tracks png, bmp, webp and jpg today (the
+# first 8000 bytes for a NUL. Corvath tracks png, webp and jpg today (the
 # icons, the deck art under bundled/ and the renderer assets).
 *.png binary
 *.bmp binary
