@@ -25,7 +25,8 @@ function seedStore(localAppData, filename, contents) {
 // every platform — pointing it at a temp dir keeps every run hermetic and off
 // the real profile. assertIsolated below fails the launch if it is not.
 // Pass an existing `localAppData` to reuse one dir across two launches
-// (persistence-across-relaunch tests).
+// (persistence-across-relaunch tests). `extraEnv` adds variables to the launch,
+// such as CORVATH_DISABLE_GPU.
 //
 // The `seed*` options pre-write a store so a spec can reach state the shipped
 // data cannot. `seedLayouts` exists for the draw specs specifically: no built-in
@@ -36,7 +37,8 @@ export async function launchApp({
   seedDecks,
   seedLayouts,
   seedReadings,
-  localAppData: reuseDir
+  localAppData: reuseDir,
+  extraEnv
 } = {}) {
   const localAppData = reuseDir ?? mkdtempSync(join(tmpdir(), 'hyb-e2e-'))
   if (seedSettings) seedStore(localAppData, 'settings.json', seedSettings)
@@ -48,7 +50,7 @@ export async function launchApp({
   // Electron-hosted terminals set it), the launched electron binary runs as
   // plain Node (no `app`, no windows) and the main process throws at
   // app.setPath. We want a real Electron app here.
-  const env = { ...process.env, LOCALAPPDATA: localAppData, NODE_ENV: 'test' }
+  const env = { ...process.env, LOCALAPPDATA: localAppData, NODE_ENV: 'test', ...extraEnv }
   delete env.ELECTRON_RUN_AS_NODE
   // Launch the project DIRECTORY, not out/main/index.js. Given a file, Electron
   // treats that file as the whole app and never reads the repo's package.json,

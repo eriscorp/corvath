@@ -13,6 +13,7 @@ import { captureError, getLogsDir, initSessionLog } from './sessionLog'
 import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
 import { pickerDialog, withPickerStart } from './pickerStart'
+import { shouldDisableHardwareAcceleration, REMOTE_SESSION_CSS } from './remoteSession'
 import {
   cspForRenderer,
   guardIpc,
@@ -42,6 +43,21 @@ const localAppData =
 
 const dataPath = join(localAppData, COMPANY, APP_DIR)
 app.setPath('userData', dataPath)
+
+// A Remote Desktop session has no GPU, so Chromium rasterises in software while
+// still paying for GPU compositing and RDP re-encodes every repaint — and a
+// frameless window drags through Chromium's app-region hit testing, which is
+// the expensive path under exactly those conditions. HTOO-325;
+// `remoteSession.ts` carries the reasoning, the CORVATH_DISABLE_GPU override,
+// and what this deliberately does not detect (a reconnected console session).
+//
+// It sits HERE, beside the `setPath` above, because both must run before the
+// `ready` event and this one fails SILENTLY afterwards rather than throwing.
+// That ordering is the one thing about this fix no unit test could otherwise
+// see, so `bootOrder.test.ts` reads this file and asserts the position. Read
+// ONCE and kept, because `createWindow` needs the same answer later.
+const isRemoteSession = shouldDisableHardwareAcceleration(process.platform, process.env)
+if (isRemoteSession) app.disableHardwareAcceleration()
 
 // The two side effects main/diagnostics.ts needs, injected rather than imported
 // there. That keeps the module free of a runtime `electron` import — which is
@@ -172,6 +188,32 @@ function createWindow(): void {
     allowExternal: true,
     openExternal: (url) => void shell.openExternal(url)
   })
+
+  // The other half of the remote-session mitigation (HTOO-327). Turning the GPU
+  // off and leaving `backdropFilter: blur(2px)` on `MuiPaper.root` — which four
+  // of the six themes carry — answers a drag-lag report by removing the hardware
+  // and keeping the work. `remoteSession.ts` carries why this is injected rather
+  // than edited into the themes.
+  //
+  // `dom-ready`, not `did-finish-load`: it fires before first paint, so there is
+  // no flash of the blurred style. The failure is logged rather than thrown — a
+  // window that renders with one expensive effect still beats no window, and
+  // this whole path is a performance mitigation rather than a correctness one.
+  // It goes to the session log, because a packaged app has no console.
+  //
+  // The splash is deliberately not a second call site: it has no `MuiPaper` and
+  // is on screen for a moment.
+  if (isRemoteSession) {
+    const contents = mainWindow.webContents
+    contents.on('dom-ready', () => {
+      contents.insertCSS(REMOTE_SESSION_CSS).catch((err: unknown) => {
+        captureError({
+          source: 'display',
+          message: `Remote-session CSS injection failed: ${err instanceof Error ? err.message : String(err)}`
+        })
+      })
+    })
+  }
 
   // Keep the renderer's maximize/restore icon in sync with the actual state.
   mainWindow.on('maximize', () => mainWindow?.webContents.send('window:maximizeChange', true))

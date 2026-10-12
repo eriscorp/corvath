@@ -38,6 +38,12 @@ npm run typecheck  # tsc for main + renderer
 npm run build:win  # package a Windows installer (electron-builder)
 ```
 
+## Remote Desktop
+
+Over RDP, Corvath drops to software rendering on its own. A remote session has no GPU, and Chromium's GPU compositing path is what makes window dragging lag and the app idle at about 10% CPU there. Corvath also turns off the panel blur of the four fantasy themes while software rendering is on, because that blur is expensive without a GPU. Nothing to set; Corvath reads the session type at launch.
+
+**It cannot see a reconnected session.** Windows records the session type at logon and never revises it, so a console session that you later connect to over RDP still reports itself as local. If dragging lags over RDP, set `CORVATH_DISABLE_GPU=1` in the environment before you launch. The same variable answers the other way: `CORVATH_DISABLE_GPU=0` forces hardware rendering back on if the detection is ever wrong on your machine. Any other non-empty value means on.
+
 ## Troubleshooting
 
 Run the tools through npm (`npm run dev`, `npm run build`) — `electron-vite` is a local dependency and isn't on your `PATH` as a bare command.
