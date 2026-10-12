@@ -14,10 +14,13 @@ Release process (the notes are authored HERE, not edited on GitHub after the fac
      makes a changed or damaged package exit with no window and no message, so a
      package that nobody started is not known to work (HTOO-381).
      npm run verify:fuses -- dist/win-unpacked/corvath.exe reads the fuses off it.
-  4. Tag vX.Y.Z and push. The release workflow runs scripts/changelog-extract.mjs
+  4. Run the Mac and Linux checks in docs/release-checks-mac-linux.md on those
+     machines. The agent there fixes a failure on that machine and reports it;
+     it does not send the failure back to Windows.
+  5. Tag vX.Y.Z and push. The release workflow runs scripts/changelog-extract.mjs
      to pull THIS version's section into the GitHub release body, then appends the
      auto-generated PR list below it.
-  5. When the release job has published the GitHub Release, start the packaged
+  6. When the release job has published the GitHub Release, start the packaged
      app from it, then run npm run publish:version -- vX.Y.Z (add --dry-run first
      to see the change). It writes corvath's entry in the house version manifest
      (versions.json in hybrasyl/cernunnos) with your own git access: it needs a
