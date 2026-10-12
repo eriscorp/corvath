@@ -2,3 +2,9 @@ singleQuote: true
 semi: false
 printWidth: 100
 trailingComma: none
+overrides:
+  # One paragraph or list item per line; the editor soft-wraps. A hard wrap at
+  # a column makes every later edit reflow the paragraph and bloats the diff.
+  - files: '*.md'
+    options:
+      proseWrap: never
