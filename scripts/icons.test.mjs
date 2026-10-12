@@ -116,6 +116,17 @@ describe('the desktop entry half of R-008', () => {
     expect(builderYml).toMatch(/^ {2}syncDesktopName: true$/m)
   })
 
+  it('the deb target has a maintainer', () => {
+    // The .deb is what installs the desktop entry. electron-builder takes its
+    // maintainer from linux.maintainer, else from package.json's author email,
+    // and with neither it fails the Linux build outright. The author here has no
+    // email, so linux.maintainer is the one that has to be present.
+    expect(builderYml).toMatch(/^ {4}- target: deb$/m)
+    const authorEmail =
+      typeof pkg.author === 'object' ? pkg.author.email : /<[^>]+>/.test(pkg.author ?? '')
+    expect(childKeys('linux').includes('maintainer') || Boolean(authorEmail)).toBe(true)
+  })
+
   it('every platform block uses only keys electron-builder declares', () => {
     // Mabon's finding, and the general form of the trap above: there is no
     // `linux.desktopName` key. Putting it there is NOT silently ignored — it
