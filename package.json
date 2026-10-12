@@ -23,7 +23,8 @@
     "postinstall": "install-electron && electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win",
     "build:unpack": "npm run build && electron-builder --dir",
-    "verify:fuses": "node scripts/verify-fuses.mjs"
+    "verify:fuses": "node scripts/verify-fuses.mjs",
+    "publish:version": "node scripts/publish-version.mjs"
   },
   "_dependenciesNote": [
     "`dependencies` holds EXACTLY what main and preload require at run time, and nothing",

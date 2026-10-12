@@ -36,7 +36,9 @@ export function createMockApi(): TarotApi {
     loadSettings: vi.fn(async (): Promise<Settings> => ({ theme: 'hybrasyl' })),
     saveSettings: vi.fn(async () => undefined),
     appReady: vi.fn(),
-    onUpdateAvailable: vi.fn(() => () => undefined),
+    // `no-entry` is the live answer until corvath's first release: no notice,
+    // and nothing for a test to clean up unless it asks for another answer.
+    checkForUpdate: vi.fn(async () => ({ ok: false, reason: 'no-entry' }) as const),
     getAppVersion: vi.fn(async () => '0.0.0-test'),
     revealSettings: vi.fn(),
     readChangelog: vi.fn(async () => ''),

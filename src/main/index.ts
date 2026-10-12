@@ -1,4 +1,14 @@
-import { app, shell, BrowserWindow, clipboard, dialog, ipcMain, protocol, session } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  net,
+  protocol,
+  session
+} from 'electron'
 import originalFs from 'original-fs'
 import { join, extname } from 'path'
 import { readFile } from 'fs/promises'
@@ -9,7 +19,6 @@ import icon from '../../resources/corvath-icon-256.png?asset'
 import { createStores } from './store'
 import { createSplashWindow } from './splash'
 import { registerHandlers } from './handlers'
-import { checkForUpdate } from './updateCheck'
 import { captureError, getLogsDir, initSessionLog } from './sessionLog'
 import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
@@ -360,6 +369,9 @@ app.whenReady().then(async () => {
       store,
       onAppReady: revealMainWindow,
       appVersion: () => app.getVersion(),
+      // The update check's one request goes through Chromium's network stack, so
+      // it uses the system proxy and the OS certificate store.
+      fetchImpl: (url, init) => net.fetch(url, init),
       // The folder every corvath file lives in, which is what a user asking
       // "where are my readings" wants — not the parent, and not a single file.
       revealSettings: () => {
@@ -414,16 +426,6 @@ app.whenReady().then(async () => {
   }, PORTABLE_SWEEP_DELAY_MS).unref()
 
   createWindow()
-
-  // Best-effort update notification. The fetch latency comfortably outlasts the
-  // renderer mount, but gate on load anyway so the message isn't sent into a
-  // page that hasn't registered its listener yet.
-  void checkForUpdate(app.getVersion()).then((info) => {
-    if (!info || !mainWindow || mainWindow.isDestroyed()) return
-    const send = (): void => mainWindow?.webContents.send('update:available', info)
-    if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', send)
-    else send()
-  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

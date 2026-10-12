@@ -31,5 +31,14 @@ export default tseslint.config(
       // Advisory, not blocking — adding deps blindly can change effect behaviour.
       'react-hooks/exhaustive-deps': 'warn'
     }
+  },
+  {
+    // The house update-check module's tests are byte copies of the template's,
+    // which uses the classic runtime and imports React in each JSX file. Under
+    // the jsx-runtime preset above, that import reads as unused. This rule marks
+    // it as used, so the copies stay unchanged and a diff against the template
+    // shows only real changes (HTOO-516).
+    files: ['src/renderer/src/components/__tests__/Update{Notice,CheckButton}.test.tsx'],
+    rules: { 'react/jsx-uses-react': 'error' }
   }
 )

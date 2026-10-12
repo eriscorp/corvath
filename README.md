@@ -29,6 +29,19 @@ Writes are crash-safe: each file is written to a `.tmp` sibling and atomically r
 
 The disposable Electron cache (`userData`) lives in the same directory.
 
+## What Corvath sends
+
+Corvath makes one request of its own. Corvath reads a small list of version numbers, `versions.json` in the public `hybrasyl/cernunnos` repository, from `raw.githubusercontent.com`. It does this 10 seconds after start, and each time you select **Check for updates** on the Settings About card. The answer tells you if a newer Corvath is available.
+
+- The request is an HTTPS GET. It carries no personal data, no token and no identifier other than a `User-Agent` of `corvath`.
+- Corvath downloads no update and installs no update. The notice shows the version, and **View release** opens the release page in your browser.
+- GitHub receives the request, as it does for a web page that you open.
+- Your readings, decks, spreads and settings stay on your computer.
+
+Until the first release of Corvath, the list has no entry for Corvath. At start Corvath then shows nothing, which is correct, and **Check for updates** says that the list has no entry for this app yet.
+
+**Report an issue** sends nothing by itself: it opens a prefilled issue page in your browser, and you choose to submit it.
+
 ## Scripts
 
 ```sh

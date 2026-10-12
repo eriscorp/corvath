@@ -1,54 +1,61 @@
-/**
- * Lightweight update *notification* — no electron-updater, no auto-download.
- * On launch we ask GitHub for the latest published release and, if its tag is
- * newer than the running version, hand the renderer a version + release URL to
- * surface. Any failure (offline, rate-limited, no releases yet) is swallowed:
- * the check is best-effort and never blocks or crashes startup.
- */
-import type { UpdateInfo } from '../shared/types'
+// house module: update-check v1 — change it in the template, then port
+//
+// Main-process half of the update check (HTOO-65, HTOO-382). Design:
+// Comhaigne docs/architecture/update-check-module.md.
+//
+// One GET of the house version manifest, with no authentication. It sends no
+// user data and no identifier beyond a User-Agent. If the app has a SECURITY.md
+// that lists its outbound traffic, this request belongs in it. It only NOTICES a
+// release: nothing here downloads or installs anything.
+//
+// The manifest replaces GitHub's releases API. That API answers 404, not 403, for
+// a private repo, so the old check read "no releases" forever and said nothing.
+// The manifest lives in the public issue repo, so repo visibility does not matter.
+//
+// Two triggers, both from the renderer: once after start, and the Check for
+// updates button. There is no timer (Sabrael, 2026-09-28).
 
-const LATEST_RELEASE_URL = 'https://api.github.com/repos/Caeldeth/corvath/releases/latest'
+import { MANIFEST_URL, readManifest, type UpdateCheckResult } from '../shared/updateVersion'
 
-/** Split a semver-ish tag into numeric components, ignoring a `v` prefix and any pre-release suffix. */
-function parseVersion(v: string): number[] {
-  return v
-    .replace(/^v/i, '')
-    .split('-')[0]
-    .split('.')
-    .map((n) => parseInt(n, 10) || 0)
+/** Long enough for a slow network, short enough that a hung request ends. */
+export const UPDATE_CHECK_TIMEOUT_MS = 10_000
+
+export interface UpdateCheckOptions {
+  currentVersion: string
+  updateKey: string
+  releaseUrlPrefix: string
+  /**
+   * Inject `net.fetch` in production, so the request uses the system proxy and
+   * the OS certificate store. Tests inject a double.
+   */
+  fetchImpl?: typeof fetch
+  timeoutMs?: number
+  /** Where the manifest lives. Tests only; production uses the house constant. */
+  manifestUrl?: string
 }
 
-/** True when `remote` is a strictly higher version than `local`. */
-export function isNewerVersion(local: string, remote: string): boolean {
-  const a = parseVersion(local)
-  const b = parseVersion(remote)
-  const len = Math.max(a.length, b.length)
-  for (let i = 0; i < len; i++) {
-    const diff = (b[i] ?? 0) - (a[i] ?? 0)
-    if (diff !== 0) return diff > 0
-  }
-  return false
-}
-
-interface GithubRelease {
-  tag_name?: string
-  html_url?: string
-  draft?: boolean
-  prerelease?: boolean
-}
-
-/** Resolve to update info when a newer stable release exists, else null. */
-export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo | null> {
+/** Never throws: every failure comes back as `{ ok: false, reason }`. */
+export async function checkForUpdate(opts: UpdateCheckOptions): Promise<UpdateCheckResult> {
+  const fetchImpl = opts.fetchImpl ?? fetch
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? UPDATE_CHECK_TIMEOUT_MS)
   try {
-    const res = await fetch(LATEST_RELEASE_URL, {
-      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'corvath' }
+    const res = await fetchImpl(opts.manifestUrl ?? MANIFEST_URL, {
+      headers: { Accept: 'application/json', 'User-Agent': opts.updateKey },
+      signal: controller.signal,
+      cache: 'no-store'
     })
-    if (!res.ok) return null
-    const data = (await res.json()) as GithubRelease
-    if (!data.tag_name || data.draft || data.prerelease) return null
-    if (!isNewerVersion(currentVersion, data.tag_name)) return null
-    return { version: data.tag_name.replace(/^v/i, ''), url: data.html_url ?? '' }
+    if (!res.ok) return { ok: false, reason: 'http' }
+    let data: unknown
+    try {
+      data = await res.json()
+    } catch {
+      return { ok: false, reason: 'malformed' }
+    }
+    return readManifest(data, opts.updateKey, opts.releaseUrlPrefix, opts.currentVersion)
   } catch {
-    return null
+    return { ok: false, reason: controller.signal.aborted ? 'timeout' : 'offline' }
+  } finally {
+    clearTimeout(timer)
   }
 }

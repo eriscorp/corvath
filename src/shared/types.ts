@@ -1,3 +1,5 @@
+import type { UpdateCheckResult } from './updateVersion'
+
 export type Orientation = 'upright' | 'reversed'
 
 export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
@@ -203,14 +205,6 @@ export interface ReadingExportResult {
   error?: string
 }
 
-/** A newer release advertised to the renderer (notification only — no auto-download). */
-export interface UpdateInfo {
-  /** Version of the latest release (tag without a leading `v`). */
-  version: string
-  /** Release page to open in the browser. */
-  url: string
-}
-
 /** The surface exposed to the renderer on `window.api`. */
 export interface TarotApi {
   readings: {
@@ -244,8 +238,13 @@ export interface TarotApi {
   saveSettings(settings: Settings): Promise<void>
   /** Signal the main process that the renderer has hydrated; reveals the window. */
   appReady(): void
-  /** Subscribe to an available-update notification; returns an unsubscribe function. */
-  onUpdateAvailable(callback: (info: UpdateInfo) => void): () => void
+  /**
+   * The update check (update-check module v1): main reads the house version
+   * manifest and compares it with this build. Takes no argument, because main
+   * owns the version, the manifest key and the release path. Never rejects on a
+   * network failure: "up to date" and "could not tell" are different values.
+   */
+  checkForUpdate(): Promise<UpdateCheckResult>
   /** This build's version string, for the About card. */
   getAppVersion(): Promise<string>
   /** Open the corvath data folder in the OS file manager. */

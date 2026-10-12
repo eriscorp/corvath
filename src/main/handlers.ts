@@ -28,7 +28,10 @@ import type {
   SavedImage,
   Settings
 } from '../shared/types'
+import type { UpdateCheckResult } from '../shared/updateVersion'
+import { appIdentity } from '../shared/appIdentity'
 import type { Stores } from './store'
+import { checkForUpdate as updateCheck } from './updateCheck'
 import {
   copyReportArgsSchema,
   decksSchema,
@@ -60,6 +63,13 @@ export interface HandlerContext {
   revealSettings?: () => void
   /** The packaged CHANGELOG.md, for the What's New dialog. */
   readChangelog?: () => Promise<string>
+  /**
+   * The fetch the update check uses. Defaults to the global one; index.ts
+   * injects Electron's `net.fetch`, for the system proxy and the OS certificate
+   * store. Injected, like the dialogs, so this file has no runtime `electron`
+   * import and the node test project can load it.
+   */
+  fetchImpl?: typeof fetch
   /** Report Issue module. Injected, so this file stays free of a runtime
    *  `electron` import and the node test project can still load it. */
   diagnostics?: {
@@ -69,6 +79,21 @@ export interface HandlerContext {
     captureRendererError: (report: RendererErrorReport) => void
     revealLogs: () => void
   }
+}
+
+/**
+ * The update check (HTOO-65, update-check module v1). Takes NO argument from
+ * the renderer: main owns the version, the manifest key and the release path.
+ * Never throws: "up to date" and "could not tell" come back as different
+ * values. It reads cernunnos `versions.json` (HTOO-382), not the releases API.
+ */
+export async function checkForUpdate(ctx: HandlerContext): Promise<UpdateCheckResult> {
+  return updateCheck({
+    currentVersion: ctx.appVersion?.() ?? '',
+    updateKey: appIdentity.updateKey,
+    releaseUrlPrefix: appIdentity.releaseUrlPrefix,
+    fetchImpl: ctx.fetchImpl
+  })
 }
 
 export const getReadings = (ctx: HandlerContext): Promise<Reading[]> => ctx.store.loadReadings()
@@ -258,6 +283,9 @@ export function registerHandlers(
   ipcMain.handle('app:getVersion', () => ctx.appVersion?.() ?? '')
   ipcMain.on('app:revealSettings', () => ctx.revealSettings?.())
   ipcMain.handle('app:readChangelog', () => ctx.readChangelog?.() ?? '')
+  // The update check: once from UpdateNotice after start, and from the About
+  // card's Check for updates button. One channel and one result for both.
+  ipcMain.handle('app:checkForUpdate', () => checkForUpdate(ctx))
 
   // Report Issue. Every payload is parsed, like every other mutating channel;
   // guardIpc has already answered who sent it.

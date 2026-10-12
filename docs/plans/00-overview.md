@@ -33,7 +33,7 @@ Do not relitigate these without a reason; each was decided deliberately.
 | --- | --- |
 | Branding / vendor | **Erisco**. `appId: co.eris.corvath`, all data under `%LOCALAPPDATA%/Erisco/Corvath` (local, never roaming). |
 | Draw modes | **Both** — deal-from-top and fan-and-pick — over layout-or-free-N-card. Seeded RNG (`mulberry32`); the seed is stored so a draw is reproducible. |
-| Auto-update | **Notification only.** `updateCheck.ts` polls the GitHub releases API and raises a Snackbar. No electron-updater, no auto-download. |
+| Auto-update | **Notification only, through the house update-check module v1** (HTOO-382, HTOO-65; 2026-10-11). `updateCheck.ts` reads `versions.json` in `hybrasyl/cernunnos` once, 10 s after start, and from **Check for updates** on the About card; `UpdateNotice` shows a newer version until the user closes it. It replaced corvath's own releases-API check. No electron-updater, no auto-download. |
 | Reading export | **JSON, round-trippable** — exports to exactly the shape `parseReadingsImport` accepts. |
 | Custom decks | Portable `.corvathdeck` zip (deck.json + `images/`) via `fflate`. |
 | Build targets | Windows ships **both nsis and portable**, matching taliesin, creidhne and epona. The installer is assisted and **per-user** (`perMachine: false`), which is expensive to reverse once released. macOS dmg and Linux AppImage/deb build in CI; both are **unsigned** until certificates exist. |
@@ -44,7 +44,7 @@ Do not relitigate these without a reason; each was decided deliberately.
 
 Everything is in place except the Hybrasyl deck art. `package.json` is at `1.0.0`.
 
-**To cut the release once WP1 lands:** promote `## [Unreleased]` in `CHANGELOG.md` to `## [1.0.0] - <date>`, then tag `v1.0.0` and push. `.github/workflows/release.yml` validates, builds Windows/macOS/Linux, extracts the notes from the CHANGELOG and publishes. That first release is also what makes `updateCheck.ts` resolve — today it 404s silently, because no release exists yet.
+**To cut the release once WP1 lands:** promote `## [Unreleased]` in `CHANGELOG.md` to `## [1.0.0] - <date>`, then tag `v1.0.0` and push. `.github/workflows/release.yml` validates, builds Windows/macOS/Linux, extracts the notes from the CHANGELOG and publishes. When the release is published, run `npm run publish:version -- v1.0.0` (CHANGELOG header step 5). That writes corvath's entry in the house version manifest. Until then the update check answers `no-entry`: the notice stays silent and **Check for updates** says the list has no entry for this app yet.
 
 Done for 1.0: branding and identity; the in-app reading engine (both draw modes, seeded and reproducible, card art in recorded readings, the `CardPreview` lightbox, spread-board tiles); card meanings and keywords for all four decks; custom deck export/import; notification-only auto-update; first-run empty states; reading export; and the release plumbing (CHANGELOG pipeline, CI gate, Playwright e2e, coverage floors).
 

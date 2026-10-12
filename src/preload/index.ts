@@ -11,9 +11,9 @@ import type {
   OpenIssueResult,
   RendererErrorReport,
   Settings,
-  TarotApi,
-  UpdateInfo
+  TarotApi
 } from '../shared/types'
+import type { UpdateCheckResult } from '../shared/updateVersion'
 
 const api: TarotApi = {
   readings: {
@@ -53,6 +53,7 @@ const api: TarotApi = {
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
   revealSettings: (): void => ipcRenderer.send('app:revealSettings'),
   readChangelog: (): Promise<string> => ipcRenderer.invoke('app:readChangelog'),
+  checkForUpdate: (): Promise<UpdateCheckResult> => ipcRenderer.invoke('app:checkForUpdate'),
   diagnostics: {
     build: (): Promise<string> => ipcRenderer.invoke('diagnostics:build'),
     openIssue: (title: string, body: string): Promise<OpenIssueResult> =>
@@ -64,11 +65,6 @@ const api: TarotApi = {
     reportError: (report: RendererErrorReport): void =>
       ipcRenderer.send('diagnostics:reportError', report),
     revealLogs: (): void => ipcRenderer.send('diagnostics:revealLogs')
-  },
-  onUpdateAvailable: (callback: (info: UpdateInfo) => void): (() => void) => {
-    const listener = (_e: IpcRendererEvent, info: UpdateInfo): void => callback(info)
-    ipcRenderer.on('update:available', listener)
-    return () => ipcRenderer.removeListener('update:available', listener)
   },
   window: {
     minimize: (): void => ipcRenderer.send('window:minimize'),

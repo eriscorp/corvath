@@ -12,6 +12,7 @@ import appIcon from '../assets/corvath-128.webp'
 import { useReportStore } from '../store/reportStore'
 import AboutDialog from './AboutDialog'
 import WhatsNewDialog from './WhatsNewDialog'
+import UpdateCheckButton from './UpdateCheckButton'
 
 /**
  * What corvath is, which build you are running, and where it keeps your files.
@@ -131,6 +132,15 @@ export default function AboutCard(): ReactElement {
           Report an issue…
         </Button>
       </Stack>
+
+      {/* The update check (HTOO-65), on its own line below the row, as midir has
+          it: the row is buttons, and this is a button that answers under itself.
+          It runs the same check as the start-up notice and, unlike the notice,
+          explains a failure, because the user asked. Until corvath's first
+          release, that answer is "no entry for this app yet". */}
+      <Box sx={{ mt: 1.5 }}>
+        <UpdateCheckButton currentVersion={version} />
+      </Box>
 
       <AboutDialog open={aboutOpen} version={version} onClose={() => setAboutOpen(false)} />
       <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
