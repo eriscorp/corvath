@@ -30,6 +30,79 @@ function at(needle: string | RegExp): number {
   return i
 }
 
+describe('single-instance lock (HTOO-351)', () => {
+  it('requests the lock after setPath and the GPU call, and before whenReady', () => {
+    // Four positions, one order, and each gap is a distinct silent failure:
+    //
+    //   setPath  <  disableHardwareAcceleration  <  requestSingleInstanceLock  <  whenReady
+    //
+    // The lock is keyed on the userData directory. Requested before the
+    // `setPath('userData', …)` override it keys on Electron's default path, and
+    // two builds that disagree about where their data lives never see each
+    // other. After `whenReady` there is nothing left to prevent. And the lock
+    // comes after the GPU call because that one is a no-op past `ready` and
+    // cannot move down, while the lock is indifferent. HTOO-325 and HTOO-351
+    // share this assertion on purpose: separating them would let one be
+    // reordered past the other with each card's own test still green.
+    const setPath = at("app.setPath('userData'")
+    const gpu = at('app.disableHardwareAcceleration()')
+    const lock = at('requestSingleInstanceLock()')
+    const ready = at('app.whenReady()')
+    expect(setPath).toBeLessThan(gpu)
+    expect(gpu).toBeLessThan(lock)
+    expect(lock).toBeLessThan(ready)
+  })
+
+  it('exits the losing instance with app.exit, never app.quit', () => {
+    // `quit()` is asynchronous: it schedules a teardown and returns, so the
+    // losing process runs every module-scope statement below the guard first —
+    // the error handlers, the stores, the scheme registration. `exit()` stops
+    // on the statement.
+    const lock = at('requestSingleInstanceLock()')
+    const ready = at('app.whenReady()')
+    const guard = MAIN.slice(lock, ready)
+    expect(guard).toMatch(/if \(!gotSingleInstanceLock\) app\.exit\(0\)/)
+    expect(guard).not.toMatch(/app\.quit\(/)
+  })
+
+  it('takes the lock before any module-scope side effect', () => {
+    // Statement forms, not names: `createStores` also matches its import at the
+    // top of the file, which is above the lock by construction. Match where the
+    // work HAPPENS. installGlobalErrorHandlers is the one that matters most: it
+    // is what would have a losing instance write into the owner's session log.
+    const lock = at('requestSingleInstanceLock()')
+    expect(at(/^installGlobalErrorHandlers\(/m)).toBeGreaterThan(lock)
+    expect(at(/^const store = createStores\(/m)).toBeGreaterThan(lock)
+    expect(at(/^protocol\.registerSchemesAsPrivileged\(/m)).toBeGreaterThan(lock)
+  })
+
+  it('surfaces the running window on a second launch', () => {
+    // A lock with no `second-instance` listener is worse than no lock: the
+    // second launch then does nothing visible at all, which a user reads as the
+    // app being broken rather than as already running. Registered at module
+    // scope, because the losing instance signals as soon as it fails the lock.
+    const listener = at(/app\.on\(\s*'second-instance'\s*,\s*focusMainWindow\s*\)/)
+    expect(listener).toBeLessThan(at('app.whenReady()'))
+  })
+
+  it('restores before it shows, so a minimised window comes forward', () => {
+    const restore = at('mainWindow.restore()')
+    const show = at('mainWindow.show()')
+    const focus = at('mainWindow.focus()')
+    expect(restore).toBeLessThan(show)
+    expect(show).toBeLessThan(focus)
+  })
+
+  it('never shows the window around the splash while the boot reveal is pending', () => {
+    // The second-instance handler returns while the reveal is still to come;
+    // the reveal is what shows the window, and it closes the splash with it.
+    const fn = MAIN.slice(at('function focusMainWindow'))
+    const guard = fn.indexOf('if (!mainWindowRevealed) return')
+    expect(guard, 'focusMainWindow waits for the reveal').toBeGreaterThan(-1)
+    expect(guard).toBeLessThan(fn.indexOf('mainWindow.show()'))
+  })
+})
+
 describe('remote-session rendering (HTOO-325)', () => {
   it('disables hardware acceleration after setPath and before app.whenReady', () => {
     // **The silent failure this fix is most likely to grow.** The electron call

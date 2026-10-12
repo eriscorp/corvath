@@ -59,6 +59,25 @@ app.setPath('userData', dataPath)
 const isRemoteSession = shouldDisableHardwareAcceleration(process.platform, process.env)
 if (isRemoteSession) app.disableHardwareAcceleration()
 
+// Single instance (HTOO-351). Two copies share one data folder, and the store
+// debounces its writes, so a second copy can flush a stale snapshot over a
+// reading the first one has just saved — a loss the user cannot rebuild. The
+// second launch surfaces the window we already have instead (see
+// `focusMainWindow`). An installed copy beside a portable exe is the ordinary
+// way two copies come to exist.
+//
+// The lock is keyed on the userData dir, so it comes AFTER the setPath above,
+// and after the GPU call, which cannot move down (it is a no-op past `ready`)
+// while the lock is indifferent: a losing instance exits before it renders.
+// It comes BEFORE every module-scope side effect below — the error handlers,
+// the stores, the scheme registration — so a losing instance touches none of
+// them, and in particular not the owner's session log. `app.exit(0)`, not
+// `app.quit()`: `quit()` is async, so the losing instance would run all of
+// that before the event loop tore it down. `exit()` stops here.
+// `bootOrder.test.ts` pins the position.
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) app.exit(0)
+
 // The two side effects main/diagnostics.ts needs, injected rather than imported
 // there. That keeps the module free of a runtime `electron` import — which is
 // what lets handlers.ts import it under the node test project — and it makes
@@ -144,19 +163,50 @@ const RENDERER_DEV_URL = (is.dev && process.env['ELECTRON_RENDERER_URL']) || und
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
 
+// False until the reveal below runs for the current main window. A window that
+// `activate` builds later (macOS) starts unrevealed again.
+let mainWindowRevealed = false
+
 // Reveal the main window and dismiss the splash. Called once the renderer
 // signals `app:ready` (first painted frame is already in the persisted theme),
 // with a timeout backstop so a renderer failure can't leave the window hidden.
 // Idempotent — the backstop and the IPC signal may both fire.
 function revealMainWindow(): void {
-  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-    mainWindow.show()
-  }
+  if (mainWindowRevealed) return
+  mainWindowRevealed = true
+  focusMainWindow()
   if (splashWindow && !splashWindow.isDestroyed()) {
     splashWindow.close()
   }
   splashWindow = null
 }
+
+// Bring the window we already have to the user: the `second-instance` response,
+// and the reveal's own show.
+//
+// **While the boot reveal is still to come, a second launch does nothing**, and
+// the reveal shows and focuses the window when the renderer is ready. Showing
+// it directly during boot goes around the splash: the splash is a separate
+// always-on-top window, and it would hang over the app until the 15 s backstop
+// (mabon's finding). Mabon calls the reveal early instead; corvath does not,
+// because it holds the window hidden until the renderer has painted in the
+// persisted theme, and an early reveal shows the unthemed white frame that the
+// handshake exists to hide. The splash is on screen meanwhile, so the second
+// launch is not silent.
+//
+// `restore()` before `show()`: a minimised window otherwise takes focus in the
+// taskbar and never comes forward, which reads as the launch doing nothing.
+function focusMainWindow(): void {
+  if (!mainWindowRevealed) return
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+// Registered at module scope, before whenReady: the losing instance signals as
+// soon as it fails the lock, which can land before this one has booted.
+app.on('second-instance', focusMainWindow)
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -355,7 +405,10 @@ app.whenReady().then(async () => {
   })
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindowRevealed = false
+      createWindow()
+    }
   })
 })
 
