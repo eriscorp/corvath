@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildIssueUrl, truncateBodyForUrl } from '../issueUrl'
+import { buildIssueUrl, TRUNCATION_NOTE_NOT_COPIED, truncateBodyForUrl } from '../issueUrl'
 import { isSafeExternalUrl } from '../externalUrl'
 
 const INTAKE = { owner: 'hybrasyl', repo: 'cernunnos' }
@@ -60,6 +60,17 @@ describe('truncateBodyForUrl', () => {
     // inside a query value and `decodeURIComponent` does not know that, so decoding
     // the raw string is a check that fails on correct output.
     expect(new URL(url).searchParams.get('body')).toContain('full report is on your clipboard')
+  })
+
+  it('uses the note it is given, for a copy that failed', () => {
+    // HTOO-553: the clipboard write can fail on Electron 44. Then the note must
+    // not send the reader to an empty clipboard.
+    const p = { ...INTAKE, title: 'Long', body: 'x'.repeat(10_000), labels: ['app:corvath'] }
+    const { url } = truncateBodyForUrl(p, 1800, TRUNCATION_NOTE_NOT_COPIED)
+    expect(url.length).toBeLessThanOrEqual(1800)
+    const body = new URL(url).searchParams.get('body') ?? ''
+    expect(body).toContain('use Copy to clipboard in the app')
+    expect(body).not.toContain('is on your clipboard')
   })
 
   it('respects the budget for a body whose encoding expands the most', () => {

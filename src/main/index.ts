@@ -40,8 +40,14 @@ app.setPath('userData', dataPath)
 // what lets handlers.ts import it under the node test project — and it makes
 // "the clipboard gets the full body BEFORE the URL opens" an assertion on two
 // spies rather than an electron stub.
+//
+// `clipboard.writeText` returns a Promise since Electron 44 (HTOO-553). The old
+// `(text) => void` type accepted it, so no typecheck found the dropped Promise.
+// A failed or timed-out copy goes to the session log, so a report shows it.
 const diagnosticsIo: DiagnosticsIo = {
   writeClipboard: (text) => clipboard.writeText(text),
+  onCopyFailed: (reason) =>
+    captureError({ source: 'clipboard', message: `Clipboard write failed: ${reason}` }),
   openExternal: (url) => {
     void shell.openExternal(url)
   }

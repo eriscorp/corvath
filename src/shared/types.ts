@@ -267,8 +267,14 @@ export interface TarotApi {
   window: WindowControls
 }
 
-/** The outcome of opening a prefilled issue on the public intake repository. */
-export type OpenIssueResult = { ok: true; truncated: boolean } | { ok: false; reason: 'unsafe-url' }
+/**
+ * The outcome of opening a prefilled issue on the public intake repository.
+ * `copied` is false when the clipboard write failed or timed out: the page still
+ * opens, and the message says the clipboard holds no report.
+ */
+export type OpenIssueResult =
+  | { ok: true; truncated: boolean; copied: boolean }
+  | { ok: false; reason: 'unsafe-url'; copied: boolean }
 
 /** One captured error, as the renderer forwards it to main. */
 export interface RendererErrorReport {

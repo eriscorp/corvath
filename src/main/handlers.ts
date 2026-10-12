@@ -64,8 +64,8 @@ export interface HandlerContext {
    *  `electron` import and the node test project can still load it. */
   diagnostics?: {
     build: () => string
-    openIssue: (p: { title: string; body: string }) => OpenIssueResult
-    copyReport: (p: { body: string }) => { ok: true }
+    openIssue: (p: { title: string; body: string }) => Promise<OpenIssueResult>
+    copyReport: (p: { body: string }) => Promise<{ ok: true }>
     captureRendererError: (report: RendererErrorReport) => void
     revealLogs: () => void
   }
@@ -269,7 +269,8 @@ export function registerHandlers(
   ipcMain.handle('diagnostics:build', () => ctx.diagnostics?.build() ?? '')
   ipcMain.handle('diagnostics:openIssue', (_e, args: unknown) => {
     const parsed = openIssueArgsSchema.parse(args)
-    if (!ctx.diagnostics) return { ok: false, reason: 'unsafe-url' } as OpenIssueResult
+    if (!ctx.diagnostics)
+      return { ok: false, reason: 'unsafe-url', copied: false } as OpenIssueResult
     return ctx.diagnostics.openIssue(parsed)
   })
   ipcMain.handle('diagnostics:copyReport', (_e, args: unknown) => {

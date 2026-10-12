@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import os from 'os'
-import { buildDiagnostics, copyReport, openIssue, MAX_URL_LEN } from '../diagnostics'
+import {
+  buildDiagnostics,
+  copyReport,
+  copyToClipboard,
+  openIssue,
+  MAX_URL_LEN
+} from '../diagnostics'
 import { captureError, _resetSessionLogForTests } from '../sessionLog'
 import type { DiagnosticsIo } from '../diagnostics'
 
@@ -17,7 +23,7 @@ function fakeIo(): DiagnosticsIo & { calls: string[] } {
   const calls: string[] = []
   return {
     calls,
-    writeClipboard: vi.fn((text: string) => {
+    writeClipboard: vi.fn(async (text: string) => {
       calls.push(`clipboard:${text.length}`)
     }),
     openExternal: vi.fn(() => {
@@ -84,45 +90,45 @@ describe('buildDiagnostics', () => {
 describe('openIssue', () => {
   const body = 'What happened\n\n```\nApp: Corvath 1.2.3\n```'
 
-  it('copies the FULL body before it opens anything', () => {
+  it('copies the FULL body before it opens anything', async () => {
     const io = fakeIo()
-    openIssue(io, { title: 'Broken', body })
+    await openIssue(io, { title: 'Broken', body })
     expect(io.writeClipboard).toHaveBeenCalledWith(body)
     // Order, not just occurrence. A version that opened first and copied after would
     // pass a `toHaveBeenCalled` pair and lose the report on any throw between them.
     expect(io.calls).toEqual([`clipboard:${body.length}`, 'open'])
   })
 
-  it('opens the intake repository with the app label', () => {
+  it('opens the intake repository with the app label', async () => {
     const io = fakeIo()
-    const result = openIssue(io, { title: 'Broken', body })
-    expect(result).toEqual({ ok: true, truncated: false })
+    const result = await openIssue(io, { title: 'Broken', body })
+    expect(result).toEqual({ ok: true, truncated: false, copied: true })
     const url = vi.mocked(io.openExternal).mock.calls[0][0]
     expect(url).toContain('https://github.com/hybrasyl/cernunnos/issues/new')
     expect(url).toContain('labels=app%3Acorvath')
   })
 
-  it('sends the title it was given', () => {
+  it('sends the title it was given', async () => {
     const io = fakeIo()
-    openIssue(io, { title: 'Push button does nothing', body })
+    await openIssue(io, { title: 'Push button does nothing', body })
     const url = new URL(vi.mocked(io.openExternal).mock.calls[0][0])
     expect(url.searchParams.get('title')).toBe('Push button does nothing')
   })
 
-  it('truncates the URL but never the clipboard', () => {
+  it('truncates the URL but never the clipboard', async () => {
     const io = fakeIo()
     const long = 'x'.repeat(20_000)
-    const result = openIssue(io, { title: 'Long', body: long })
-    expect(result).toEqual({ ok: true, truncated: true })
+    const result = await openIssue(io, { title: 'Long', body: long })
+    expect(result).toEqual({ ok: true, truncated: true, copied: true })
     // The whole design in one assertion: the link is trimmed to something the OS
     // will open, and the user still holds every byte.
     expect(io.writeClipboard).toHaveBeenCalledWith(long)
     expect(vi.mocked(io.openExternal).mock.calls[0][0].length).toBeLessThanOrEqual(MAX_URL_LEN)
   })
 
-  it('cannot have a separator injected through the body', () => {
+  it('cannot have a separator injected through the body', async () => {
     const io = fakeIo()
-    openIssue(io, { title: 'x', body: '&labels=app:oghma&title=hijacked' })
+    await openIssue(io, { title: 'x', body: '&labels=app:oghma&title=hijacked' })
     const url = new URL(vi.mocked(io.openExternal).mock.calls[0][0])
     // The reason a body is not a fourth input shape: the encoder is total, so prose
     // cannot become a parameter. Corvath's own label is the only one applied.
@@ -132,12 +138,100 @@ describe('openIssue', () => {
 })
 
 describe('copyReport', () => {
-  it('copies the body and nothing else happens', () => {
+  it('copies the body and nothing else happens', async () => {
     const io = fakeIo()
-    expect(copyReport(io, { body: 'the whole report' })).toEqual({ ok: true })
+    expect(await copyReport(io, { body: 'the whole report' })).toEqual({ ok: true })
     expect(io.writeClipboard).toHaveBeenCalledWith('the whole report')
     // No budget applies to a clipboard, so there is nothing to truncate — and no
     // browser is asked for anything.
     expect(io.openExternal).not.toHaveBeenCalled()
+  })
+})
+
+describe('the clipboard on Electron 44 (HTOO-553)', () => {
+  // Electron 44's clipboard.writeText returns a Promise. The page the report
+  // opens tells the user to paste, so the copy must finish before it opens.
+  it('opens the issue only after the clipboard write settles', async () => {
+    const calls: string[] = []
+    let finish: () => void = () => undefined
+    const io: DiagnosticsIo = {
+      writeClipboard: () =>
+        new Promise<void>((resolve) => {
+          calls.push('copy started')
+          finish = () => {
+            calls.push('copy done')
+            resolve()
+          }
+        }),
+      openExternal: () => calls.push('open')
+    }
+    const pending = openIssue(io, { title: 'Broken', body: 'body' })
+    await Promise.resolve()
+    expect(calls).toEqual(['copy started'])
+    finish()
+    expect(await pending).toMatchObject({ ok: true, copied: true })
+    expect(calls).toEqual(['copy started', 'copy done', 'open'])
+  })
+
+  it('still opens the issue when the copy fails, and says so', async () => {
+    const calls: string[] = []
+    const failures: string[] = []
+    const io: DiagnosticsIo = {
+      writeClipboard: async () => {
+        throw new Error('clipboard busy')
+      },
+      onCopyFailed: (reason) => failures.push(reason),
+      openExternal: () => calls.push('open')
+    }
+    expect(await openIssue(io, { title: 'Broken', body: 'body' })).toEqual({
+      ok: true,
+      truncated: false,
+      copied: false
+    })
+    expect(calls).toEqual(['open'])
+    expect(failures).toEqual(['clipboard busy'])
+    await expect(copyReport(io, { body: 'the report' })).rejects.toThrow('Clipboard write failed')
+  })
+
+  it('does not point a truncated link at an empty clipboard', async () => {
+    const io: DiagnosticsIo = {
+      writeClipboard: async () => {
+        throw new Error('clipboard busy')
+      },
+      openExternal: vi.fn()
+    }
+    const result = await openIssue(io, { title: 'Long', body: 'x'.repeat(20_000) })
+    expect(result).toEqual({ ok: true, truncated: true, copied: false })
+    const url = new URL(vi.mocked(io.openExternal).mock.calls[0][0])
+    const sent = url.searchParams.get('body') ?? ''
+    expect(sent).toContain('use Copy to clipboard in the app')
+    expect(sent).not.toContain('is on your clipboard')
+  })
+
+  it('gives up on a clipboard that never answers, and the issue still opens', async () => {
+    vi.useFakeTimers()
+    try {
+      const failures: string[] = []
+      const io: DiagnosticsIo = {
+        writeClipboard: () => new Promise<void>(() => undefined),
+        onCopyFailed: (reason) => failures.push(reason),
+        openExternal: vi.fn()
+      }
+      const copied = copyToClipboard(io, 'text', 3000)
+      await vi.advanceTimersByTimeAsync(2999)
+      expect(failures).toEqual([])
+      await vi.advanceTimersByTimeAsync(1)
+      expect(await copied).toBe(false)
+      expect(failures).toEqual(['timed out after 3000 ms'])
+
+      // The default bound applies to the report flow too: a held clipboard
+      // delays the issue page, but does not stop it.
+      const pending = openIssue(io, { title: 'Broken', body: 'body' })
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(await pending).toMatchObject({ ok: true, copied: false })
+      expect(io.openExternal).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
