@@ -314,8 +314,10 @@ export default function Draw({ decks, layouts, onDone }: DrawProps): ReactElemen
               {card && (
                 <Typography variant="caption" sx={{ textAlign: 'center', lineHeight: 1.1 }}>
                   {card.name}
+                  {/* primary.main, not secondary: secondary is a fill only, and
+                      secondary.light is 1.2:1 on danaan's page (HTOO-572). */}
                   {card.orientation === 'reversed' && (
-                    <Box component="span" sx={{ color: 'secondary.light' }}>
+                    <Box component="span" sx={{ color: 'primary.main' }}>
                       {' '}
                       (rev)
                     </Box>
