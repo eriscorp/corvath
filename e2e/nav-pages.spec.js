@@ -91,6 +91,29 @@ test.describe('Settings page', () => {
     await electronApp?.close()
   })
 
+  test('opens the theme gallery from the Appearance card, and goes back', async () => {
+    // The gallery is not a nav tab, so the walk above does not reach it. It is
+    // a page all the same (HTOO-572): its marker, no error boundary, no page
+    // error, and Back returns to the cards.
+    ;({ electronApp } = await launchApp())
+    const page = await getMainWindow(electronApp)
+    const errors = []
+    page.on('pageerror', (err) => errors.push(`${err.message}`))
+
+    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page
+      .getByTestId('appearance-card')
+      .getByRole('button', { name: 'Theme gallery', exact: true })
+      .click()
+    await expect(page.getByTestId('theme-gallery-page'), 'gallery: page marker').toBeVisible()
+    await page.waitForTimeout(SETTLE_MS)
+    await expect(page.getByTestId('error-boundary-fallback')).toHaveCount(0)
+    expect(errors, 'gallery: page error').toEqual([])
+
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(page.getByTestId('settings-page')).toBeVisible()
+  })
+
   test('carries the theme picker and the About card', async () => {
     ;({ electronApp } = await launchApp())
     const page = await getMainWindow(electronApp)
