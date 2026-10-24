@@ -75,6 +75,8 @@ This is the first release. Corvath is a desktop tarot companion. It draws readin
 ### Fixed
 
 - **The reversed mark, the card highlight and the Layouts board read in every theme.** The "(rev)" mark on the Draw tab, the ring around a highlighted card, and the selected position and labels on the Layouts board now use the accent colour of the theme. Before, they used a light bar colour. On Danaan, Chadul and Dubhaimid that colour was below 2.1:1 on the page.
+- **A delete button shows the error colour.** On Hybrasyl, Chadul, Danaan and Grinneal, an error, warning, info or success button now shows its own colour. Before, every button had the theme's button colour, so the Delete button of a confirm dialog looked like any other button.
+- **Danaan: text on its darker panels and tooltips reads.** The accent, the status colours, headings, links and the selected list item now read on Danaan's darker panels as well as on the page.
 - **Filled chips, filled alerts and alert icons read in every theme.** The label of a filled status chip or a filled alert now reads on its fill. The icon of a standard alert now shows its status colour.
 - **A second launch brings the open Corvath window forward.** Before, a second launch opened a second copy of Corvath on the same data. The two copies then saved over each other, and a reading could be lost. Now the second launch stops at once, and the window that is already open comes to the front, also when it is minimised.
 - **A second start of the portable exe no longer shows a "Corvath cannot be closed" box.** Each start of the portable exe now unpacks into a folder of its own, so a second start cannot overwrite the files of the copy that runs. The second start then brings the open window forward.
