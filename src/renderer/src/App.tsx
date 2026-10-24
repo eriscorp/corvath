@@ -21,40 +21,6 @@ import Draw from './pages/Draw'
 import DeckBuilder from './pages/DeckBuilder'
 import Layouts from './pages/Layouts'
 
-// Scrollbar accent per theme, pushed onto :root as CSS variables (see main.css).
-const scrollbarColors: Record<ThemeName, { thumb: string; thumbHover: string; track: string }> = {
-  hybrasyl: {
-    thumb: 'rgba(58,158,144,0.5)',
-    thumbHover: 'rgba(58,158,144,0.8)',
-    track: 'rgba(6,12,18,0.4)'
-  },
-  chadul: {
-    thumb: 'rgba(46,122,58,0.5)',
-    thumbHover: 'rgba(46,122,58,0.8)',
-    track: 'rgba(4,14,6,0.4)'
-  },
-  danaan: {
-    thumb: 'rgba(184,146,42,0.5)',
-    thumbHover: 'rgba(184,146,42,0.8)',
-    track: 'rgba(200,180,120,0.3)'
-  },
-  grinneal: {
-    thumb: 'rgba(106,122,80,0.5)',
-    thumbHover: 'rgba(106,122,80,0.8)',
-    track: 'rgba(22,18,14,0.4)'
-  },
-  mundanes: {
-    thumb: 'rgba(25,118,210,0.5)',
-    thumbHover: 'rgba(25,118,210,0.8)',
-    track: 'rgba(201,205,212,0.4)'
-  },
-  dubhaimid: {
-    thumb: 'rgba(92,139,196,0.5)',
-    thumbHover: 'rgba(92,139,196,0.8)',
-    track: 'rgba(30,30,30,0.4)'
-  }
-}
-
 function App(): React.JSX.Element {
   const themeName = useSettingsStore((s) => s.theme)
   const hydrated = useSettingsStore((s) => s.hydrated)
@@ -87,18 +53,19 @@ function App(): React.JSX.Element {
   // once settings have hydrated. Does nothing off macOS.
   useAppMenu(hydrated)
 
-  // Keep the themed scrollbar CSS variables in sync with the active theme.
-  useEffect(() => {
-    const colors = scrollbarColors[themeName] ?? scrollbarColors.hybrasyl
-    const root = document.documentElement
-    root.style.setProperty('--scrollbar-thumb', colors.thumb)
-    root.style.setProperty('--scrollbar-thumb-hover', colors.thumbHover)
-    root.style.setProperty('--scrollbar-track', colors.track)
-  }, [themeName])
-
   const changeTheme = (name: ThemeName): void => setTheme(name)
 
   const theme = themesByName[themeName] ?? hybrasylTheme
+
+  // Push the theme's scrollbar colours onto :root as CSS variables, so the
+  // scrollbars follow the active theme (main.css uses them). The colours are in
+  // each theme's palette, as in the template (HTOO-572).
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--scrollbar-thumb', theme.palette.background.scrollbarDark)
+    root.style.setProperty('--scrollbar-thumb-hover', theme.palette.background.scrollbarLight)
+    root.style.setProperty('--scrollbar-track', theme.palette.background.paperDark)
+  }, [theme])
 
   // Gate first paint on settings hydration so the app never flashes the default
   // theme. In practice the window stays hidden until app:ready fires (just after
