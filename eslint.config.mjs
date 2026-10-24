@@ -33,14 +33,17 @@ export default tseslint.config(
     }
   },
   {
-    // The house update-check module's tests and the house chip test are byte
-    // copies of the template's, which uses the classic runtime and imports React
-    // in each JSX file. Under the jsx-runtime preset above, that import reads as
-    // unused. This rule marks it as used, so the copies stay unchanged and a diff
+    // The house update-check module's tests, and the house palette, chip,
+    // filled-control, title-bar and gallery tests, are byte copies of the
+    // template's, which uses the classic runtime and imports React in each JSX
+    // file. Under the jsx-runtime preset above, that import reads as unused.
+    // This rule marks it as used, so the copies stay unchanged and a diff
     // against the template shows only real changes (HTOO-516, HTOO-572).
     files: [
       'src/renderer/src/components/__tests__/Update{Notice,CheckButton}.test.tsx',
-      'src/renderer/src/themes/__tests__/selectedChip.test.tsx'
+      'src/renderer/src/components/__tests__/{TitleBar,chromeContrast}.test.tsx',
+      'src/renderer/src/pages/__tests__/ThemeGallery.test.tsx',
+      'src/renderer/src/themes/__tests__/{selectedChip,filledControls}.test.tsx'
     ],
     rules: { 'react/jsx-uses-react': 'error' }
   }

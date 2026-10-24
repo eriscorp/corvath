@@ -1,30 +1,36 @@
+import React from 'react'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, act, cleanup } from '@testing-library/react'
 import { ThemeProvider } from '@mui/material/styles'
-import { Alert, Button } from '@mui/material'
+import { Alert, Box, Button, Chip, IconButton } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
 import { themesByName } from '../index'
-import { contrast } from './contrast'
+import { contrast } from '@renderer/lib/contrast'
 import type { ThemeName } from '@shared/types'
 import UpdateNotice, { START_DELAY_MS } from '@renderer/components/UpdateNotice'
 
 const THEME_NAMES = Object.keys(themesByName) as ThemeName[]
+const SEVERITIES = ['error', 'warning', 'info', 'success'] as const
 
-/** The colour an element draws in. */
+/** The colour an element draws its text and icons in. */
 const drawn = (el: Element): string => getComputedStyle(el).color
 
 /**
- * A filled control's contents read like its label (`corvathOverrides.ts`).
+ * A filled control draws its contents in its label colour, and the label reads
+ * on the fill (HTOO-572).
  *
- * The house update notice (a byte copy, not changed here) puts "View release"
- * and a close X in a filled info alert, both with `color="inherit"`. The house
- * themes' MuiButton, MuiLink and MuiSvgIcon overrides beat that inherit, so in
- * hybrasyl both drew the theme's teal on the teal fill (1.59:1), and in
- * grinneal the X was 1.11:1. The Readings and Decks toasts are the same filled
- * alert with a close X. This renders both and asks that every part of the
- * alert take the message's colour. The message colour is MUI's own choice for
- * the fill; mundanes' white on its info blue is 3.86:1, and that is MUI's
- * default, so this asks 3:1 of it, the threshold MUI picks a label by.
+ * The themes' MuiButton, MuiLink and MuiSvgIcon overrides gave each of those
+ * parts an accent of its own, and that beat `color="inherit"`. The house update
+ * notice puts "View release" and a close X in a filled info alert, both with
+ * `color="inherit"`: in hybrasyl both drew teal on the teal fill (1.59:1), and
+ * in grinneal the X was 1.11:1. A contained button's icon took the same accent:
+ * danaan's dark gold on its gold fill was 1.34:1. Corvath found all three.
+ *
+ * The status colours had no rule either. MUI picks a filled label with
+ * `getContrastText`, which takes white at 3:1: mundanes' filled info alert was
+ * white on `#0288d1` (3.86:1), and a filled `#ff0000` error chip white at 4.00:1
+ * (mabon). Labels are normal-sized text, so every check here is 4.5:1.
  */
 describe('a filled control', () => {
   beforeEach(() => {
@@ -39,7 +45,7 @@ describe('a filled control', () => {
   it.each(THEME_NAMES)('%s: the update notice draws its action like its message', async (name) => {
     window.api.checkForUpdate = vi.fn(async () => ({
       ok: true as const,
-      update: { version: '9.0.0', url: 'https://github.com/eriscorp/corvath/releases/tag/v9.0.0' }
+      update: { version: '9.0.0', url: 'https://example.invalid/releases/tag/v9.0.0' }
     }))
     render(
       <ThemeProvider theme={themesByName[name]}>
@@ -54,38 +60,87 @@ describe('a filled control', () => {
     })
     const alert = screen.getByRole('status')
     const message = drawn(alert)
-    const fill = getComputedStyle(alert).backgroundColor
-    expect(contrast(message, fill), `message ${message} on ${fill}`).toBeGreaterThanOrEqual(3)
     expect(drawn(screen.getByText('View release').closest('a')!), 'View release').toBe(message)
     expect(drawn(alert.querySelector('.MuiAlert-icon svg')!), 'the info icon').toBe(message)
     const close = screen.getByRole('button', { name: 'Close' })
     expect(drawn(close.querySelector('svg')!), 'the close X').toBe(message)
   })
 
-  it.each(THEME_NAMES)('%s: a toast draws its close X like its message', (name) => {
-    render(
-      <ThemeProvider theme={themesByName[name]}>
-        <Alert severity="success" variant="filled" onClose={() => {}}>
-          Saved.
-        </Alert>
-      </ThemeProvider>
-    )
-    const alert = screen.getByRole('alert')
-    const close = screen.getByRole('button', { name: 'Close' })
-    expect(drawn(close.querySelector('svg')!)).toBe(drawn(alert))
-  })
+  describe.each(THEME_NAMES)('%s', (name) => {
+    const theme = themesByName[name]
 
-  // The same fault in a contained button: its icon took the theme's MuiSvgIcon
-  // accent (danaan: 1.34:1 on its gold fill). It now takes the label's colour.
-  it.each(THEME_NAMES)('%s: a contained button draws its icon like its label', (name) => {
-    render(
-      <ThemeProvider theme={themesByName[name]}>
-        <Button variant="contained" startIcon={<AddIcon />}>
-          New deck
-        </Button>
-      </ThemeProvider>
-    )
-    const button = screen.getByRole('button', { name: 'New deck' })
-    expect(drawn(button.querySelector('svg')!)).toBe(drawn(button))
+    it.each(SEVERITIES)('a filled %s alert: the message reads, the icon and X match it', (sev) => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Alert severity={sev} variant="filled" onClose={() => {}}>
+            Saved.
+          </Alert>
+        </ThemeProvider>
+      )
+      const alert = screen.getByRole('alert')
+      const message = drawn(alert)
+      const fill = getComputedStyle(alert).backgroundColor
+      // MUI's dark label is translucent, so it is drawn over the fill.
+      expect(contrast(message, fill, fill), `${message} on ${fill}`).toBeGreaterThanOrEqual(4.5)
+      expect(drawn(alert.querySelector('.MuiAlert-icon svg')!), 'the icon').toBe(message)
+      const close = screen.getByRole('button', { name: 'Close' })
+      expect(drawn(close.querySelector('svg')!), 'the close X').toBe(message)
+    })
+
+    it.each(SEVERITIES)('a standard %s alert draws its icon in the colour MUI gives it', (sev) => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Alert severity={sev}>Saved.</Alert>
+        </ThemeProvider>
+      )
+      const icon = screen.getByRole('alert').querySelector('.MuiAlert-icon')!
+      expect(drawn(icon.querySelector('svg')!)).toBe(drawn(icon))
+    })
+
+    it.each(SEVERITIES)('a filled %s chip: the label reads on the fill', (sev) => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Chip data-testid="chip" color={sev} label="stale" />
+        </ThemeProvider>
+      )
+      const chip = getComputedStyle(screen.getByTestId('chip'))
+      expect(
+        contrast(chip.color, chip.backgroundColor, chip.backgroundColor),
+        `${chip.color} on ${chip.backgroundColor}`
+      ).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('a contained button draws its icon like its label', () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Button variant="contained" startIcon={<AddIcon />}>
+            New
+          </Button>
+        </ThemeProvider>
+      )
+      const button = screen.getByRole('button', { name: 'New' })
+      expect(drawn(button.querySelector('svg')!)).toBe(drawn(button))
+    })
+
+    it('an inherit button and icon button take the colour around them', () => {
+      render(
+        <ThemeProvider theme={theme}>
+          <Box data-testid="around" sx={{ color: '#123456' }}>
+            <Button color="inherit" startIcon={<AddIcon />}>
+              More
+            </Button>
+            <IconButton color="inherit" aria-label="Shut">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </ThemeProvider>
+      )
+      const around = drawn(screen.getByTestId('around'))
+      const button = screen.getByRole('button', { name: 'More' })
+      expect(drawn(button), 'the button').toBe(around)
+      expect(drawn(button.querySelector('svg')!), "the button's icon").toBe(around)
+      const shut = screen.getByRole('button', { name: 'Shut' })
+      expect(drawn(shut.querySelector('svg')!), 'the icon button').toBe(around)
+    })
   })
 })

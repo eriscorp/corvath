@@ -8,7 +8,7 @@ import { useDecksStore } from './store/decksStore'
 import { useLayoutsStore } from './store/layoutsStore'
 import { useDecks } from './hooks/useDecks'
 import { useLayouts } from './hooks/useLayouts'
-import TitleBar from './components/TitleBar'
+import AppTitleBar from './components/AppTitleBar'
 import SettingsPage from './pages/SettingsPage'
 import UpdateNotice from './components/UpdateNotice'
 import ReportIssueDialog from './components/ReportIssueDialog'
@@ -136,7 +136,7 @@ function App(): React.JSX.Element {
           bgcolor: 'background.default'
         }}
       >
-        <TitleBar themeName={themeName} />
+        <AppTitleBar />
         <NavBar view={view} onChange={setView} />
 
         {view === 'readings' && (

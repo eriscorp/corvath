@@ -6,7 +6,7 @@ import { launchApp, getMainWindow } from './helpers.js'
 // THEME_NAMES, and the themesByName map) and a miss in any of them fails quietly
 // — the picker still shows the entry, but the theme silently falls back. This is
 // the cheapest way to catch that, and it also exercises the plain and the
-// engraved title bars.
+// decorated title bars.
 
 const THEMES = ['hybrasyl', 'danaan', 'chadul', 'grinneal', 'mundanes', 'dubhaimid']
 
