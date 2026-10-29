@@ -115,7 +115,8 @@ export default function LayoutBoard({
               p: 0.5,
               borderRadius: 1,
               border: 2,
-              borderColor: selected ? 'secondary.light' : 'divider',
+              // primary.main, not secondary: secondary is a fill only (HTOO-572).
+              borderColor: selected ? 'primary.main' : 'divider',
               bgcolor: 'background.paper',
               cursor: onMove ? 'grab' : onSelect ? 'pointer' : 'default',
               boxShadow: selected ? 3 : 0,
@@ -157,7 +158,7 @@ export default function LayoutBoard({
                   fontSize: '1rem',
                   fontWeight: 700,
                   lineHeight: 1,
-                  color: 'secondary.light',
+                  color: 'primary.main',
                   ...(face && {
                     color: 'common.white',
                     textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.7)'
@@ -207,7 +208,7 @@ export default function LayoutBoard({
                   fontSize: '0.78rem',
                   lineHeight: 1.15,
                   textAlign: 'center',
-                  color: 'secondary.light',
+                  color: 'primary.main',
                   overflow: 'hidden',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,

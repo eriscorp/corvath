@@ -91,8 +91,10 @@ export default function DrawCard({
         opacity: spent ? 0.35 : 1,
         transition: 'opacity 0.3s, box-shadow 0.2s, transform 0.15s',
         borderRadius: 1.5,
+        // The ring takes currentColor. primary.main reads at 3:1 and more on
+        // the page in every theme; secondary.light does not (HTOO-572).
         boxShadow: highlight ? '0 0 0 2px' : 0,
-        color: highlight ? 'secondary.light' : undefined,
+        color: highlight ? 'primary.main' : undefined,
         '&:hover': onClick && !spent ? { transform: 'translateY(-4px)' } : undefined,
         ...sx
       }}

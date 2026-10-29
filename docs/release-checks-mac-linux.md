@@ -144,7 +144,7 @@ Open `dist/mac-universal/Corvath.app` on macOS, or run `dist/linux-unpacked/corv
 
 On each of the six themes (Settings → Appearance):
 
-1. The stoplights sit centred in the bar, from top to bottom. The bar is 40 px and the lights are at `{ x: 12, y: 12 }`. That position is calculated, not seen.
+1. The stoplights sit centred in the bar, from top to bottom. The bar is 36 px (the house title-bar module) and the lights are at `{ x: 12, y: 10 }`. That position is calculated, not seen. (HTOO-572)
 2. Nothing else is in the bar: no logo, no "Corvath", no minimise, maximise or close buttons.
 3. A drag on the bar moves the window. A double-click on the bar zooms the window.
 
@@ -167,7 +167,7 @@ On each of the six themes (Settings → Appearance):
 1. **The splash:** the spinner under the logo is a round ring, not an oval. (The font falls back from Segoe UI on Linux. The spinner and the logo have `flex-shrink: 0` against that, HTOO-553.)
 2. **The window corners:** since Electron 43 a frameless window can have rounded corners where the desktop supports them. Say whether the corners are round or square, and whether anything looks clipped.
 3. **The title bar buttons:** minimise, maximise (twice, to restore) and close each work.
-4. **The title bar on each of the six themes** (Settings → Appearance). Danaan and Grinneal have dark text on the bar. That text is engraved, with a thin light edge below and to the right. Hybrasyl and Chadul have light text. Mundanes and Dubhaimid are flat. On each theme the bar text and the three button glyphs are easy to read. (HTOO-572)
+4. **The title bar on each of the six themes** (Settings → Appearance). Hybrasyl, Chadul, Danaan and Grinneal have a dark bar with light text and a black outline. Mundanes and Dubhaimid are flat, with no outline. On each theme the bar text and the three button glyphs are easy to read, and the close button turns red under the pointer. (HTOO-572)
 5. **The taskbar and the switcher** show Corvath's icon, not a generic one. This needs the installed `.deb` or the AppImage, not `npm run dev`. (HTOO-63)
 
 ## For this round (2026-10-11)

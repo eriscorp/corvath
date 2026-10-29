@@ -68,7 +68,7 @@ test('installs the app menu, with no Reload, and an empty title bar', async () =
   // macOS draws the window buttons; the title bar draws none, and no branding.
   const bar = page.getByTestId('title-bar')
   await expect(bar).toBeVisible()
-  await expect(page.getByRole('button', { name: 'minimize' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Minimize' })).toHaveCount(0)
   await expect(bar.locator('img')).toHaveCount(0)
   await expect(bar).not.toContainText('Corvath')
   // Real geometry, not jsdom's: the bar's left padding clears the stoplights.
