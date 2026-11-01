@@ -277,8 +277,8 @@ function createWindow(): void {
   })
 
   // The other half of the remote-session mitigation (HTOO-327). Turning the GPU
-  // off and leaving `backdropFilter: blur(2px)` on `MuiPaper.root` — which four
-  // of the six themes carry — answers a drag-lag report by removing the hardware
+  // off and leaving `backdropFilter: blur(2px)` on `MuiPaper.root` — which six
+  // of the eight themes carry — answers a drag-lag report by removing the hardware
   // and keeping the work. `remoteSession.ts` carries why this is injected rather
   // than edited into the themes.
   //

@@ -8,7 +8,16 @@ import { launchApp, getMainWindow } from './helpers.js'
 // the cheapest way to catch that, and it also exercises the plain and the
 // decorated title bars.
 
-const THEMES = ['hybrasyl', 'danaan', 'chadul', 'grinneal', 'mundanes', 'dubhaimid']
+const THEMES = [
+  'hybrasyl',
+  'danaan',
+  'chadul',
+  'grinneal',
+  'shattered',
+  'untamed',
+  'mundanes',
+  'dubhaimid'
+]
 
 test.describe('Themes', () => {
   let electronApp
@@ -41,7 +50,7 @@ test.describe('Themes', () => {
       backgrounds.add(await root.evaluate((el) => getComputedStyle(el).backgroundColor))
     }
 
-    // Distinct palettes, not six aliases of the same fallback.
+    // Distinct palettes, not eight aliases of the same fallback.
     expect(backgrounds.size).toBeGreaterThan(1)
     expect(errors).toEqual([])
   })

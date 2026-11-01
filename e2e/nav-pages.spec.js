@@ -125,7 +125,7 @@ test.describe('Settings page', () => {
     // card, which owns its Paper as the About card does.
     const picker = page.getByRole('radiogroup', { name: 'Theme' })
     await expect(picker).toBeVisible()
-    await expect(picker.getByRole('radio')).toHaveCount(6)
+    await expect(picker.getByRole('radio')).toHaveCount(8)
     await expect(picker.getByRole('radio', { checked: true })).toHaveAccessibleName('Hybrasyl')
     await expect(page.getByTestId('title-bar').getByTestId('theme-select')).toHaveCount(0)
     await expect(page.getByTestId('appearance-card').getByTestId('theme-select')).toHaveCount(1)

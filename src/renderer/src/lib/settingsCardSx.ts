@@ -18,7 +18,7 @@ export const cardSx = {
 /**
  * `text.button`, the house heading colour (the template's card vocabulary, and
  * midir's). The palette test holds it at 4.5:1 on the page and on paper in all
- * six themes (HTOO-572). Each card heading is `variant="h6"`, as midir's are.
+ * eight themes (HTOO-572). Each card heading is `variant="h6"`, as midir's are.
  *
  * Corvath used `text.primary` here until the canonical palettes landed, for two
  * reasons that no longer hold. Corvath had no `augmentation.ts`, so no theme

@@ -14,7 +14,16 @@ import { launchApp, getMainWindow } from './helpers.js'
 // cannot be measured, and it writes every low ratio to `theme-gallery.json`
 // in the test's output folder, with its section, row, sample and surface.
 
-const THEMES = ['Hybrasyl', 'Chadul', 'Danaan', 'Grinneal', 'Mundanes', 'Dubhaimid']
+const THEMES = [
+  'Hybrasyl',
+  'Chadul',
+  'Danaan',
+  'Grinneal',
+  'Shattered',
+  'Untamed',
+  'Mundanes',
+  'Dubhaimid'
+]
 
 test('the theme gallery measures every sample in every theme', async () => {
   const testInfo = test.info()

@@ -3,15 +3,18 @@ import type { MenuMessage, MenuState } from './appMenu'
 
 export type Orientation = 'upright' | 'reversed'
 
-export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
+export type ThemeName =
+  'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'shattered' | 'untamed' | 'mundanes' | 'dubhaimid'
 
-/** The six themes, in the order the theme picker shows them. Main validates a
+/** The eight themes, in the order the theme picker shows them. Main validates a
  *  stored theme against its own copy in `main/schemas`. */
 export const THEME_NAMES: ThemeName[] = [
   'hybrasyl',
   'danaan',
   'chadul',
   'grinneal',
+  'shattered',
+  'untamed',
   'mundanes',
   'dubhaimid'
 ]
