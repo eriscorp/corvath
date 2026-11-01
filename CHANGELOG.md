@@ -92,6 +92,7 @@ This is the first release. Corvath is a desktop tarot companion. It draws readin
 
 ### Security
 
+- **Corvath runs on Electron 44.10.0.** It includes Node 24.22.1, a Node security release with fixes in HTTP, DNS, TLS and crypto, and a newer Chromium.
 - **Corvath refuses to move its window away from its own pages.** It opens a link in your browser only when the link is an ordinary web or mail link. It refuses every other kind of link: a local file path, a network share, a script URL, or a custom scheme that another program on your machine registers.
 - **The interface runs in a sandbox.** Corvath checks every request that the interface makes to its privileged side. The check confirms that the request comes from a real Corvath window that shows the content of Corvath.
 - **Corvath switches off the debug controls in the Electron runtime that it ships.** Nobody can therefore use the bundled binary to run other code through environment variables or command-line flags.

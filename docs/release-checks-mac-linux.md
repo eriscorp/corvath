@@ -55,7 +55,7 @@ npm run validate && npm run build && grep -o 'require("[^"]*")' out/preload/inde
 
 Every step must pass. The `grep` must print `require("electron")` only. The preload is sandboxed, and a sandboxed preload can load only `electron` (HTOO-54). Report the test count.
 
-On Windows the suite is 666 passed and 0 skipped. No unit test in Corvath depends on the OS, so expect the same count here. Report the exact numbers, and name any test that fails or skips.
+On Windows the suite is 1192 passed and 0 skipped (2026-11-01). No unit test in Corvath depends on the OS, so expect the same count here. Report the exact numbers, and name any test that fails or skips.
 
 ### A2 and A3. e2e on Electron 44, and the real data stays the same (both OS) — HTOO-553, HTOO-543
 
@@ -147,6 +147,7 @@ On each of the eight themes (Settings → Appearance):
 1. The stoplights sit centred in the bar, from top to bottom. The bar is 36 px (the house title-bar module) and the lights are at `{ x: 12, y: 10 }`. That position is calculated, not seen. (HTOO-572)
 2. Nothing else is in the bar: no logo, no "Corvath", no minimise, maximise or close buttons.
 3. A drag on the bar moves the window. A double-click on the bar zooms the window.
+4. The nav bar under the title bar has a different colour from the title bar. Each page name on it is easy to read, and the open page has a ring. (HTOO-629)
 
 ### B3. The menu and the keys (macOS)
 
@@ -167,29 +168,28 @@ On each of the eight themes (Settings → Appearance):
 1. **The splash:** the spinner under the logo is a round ring, not an oval. (The font falls back from Segoe UI on Linux. The spinner and the logo have `flex-shrink: 0` against that, HTOO-553.)
 2. **The window corners:** since Electron 43 a frameless window can have rounded corners where the desktop supports them. Say whether the corners are round or square, and whether anything looks clipped.
 3. **The title bar buttons:** minimise, maximise (twice, to restore) and close each work.
-4. **The title bar on each of the eight themes** (Settings → Appearance). Hybrasyl, Chadul, Danaan, Grinneal, Shattered and Untamed have a dark bar with light text and a black outline. Mundanes and Dubhaimid are flat, with no outline. On each theme the bar text and the three button glyphs are easy to read, and the close button turns red under the pointer. (HTOO-572)
+4. **The title bar on each of the eight themes** (Settings → Appearance). Hybrasyl, Chadul, Danaan, Grinneal, Shattered and Untamed have a dark bar with light text and a black outline. Mundanes and Dubhaimid are flat, with no outline. On each theme the bar text and the three button glyphs are easy to read, and the close button turns red under the pointer. The nav bar under it has a different colour, each page name on it is easy to read, and the open page has a ring. (HTOO-572, HTOO-629)
 5. **The taskbar and the switcher** show Corvath's icon, not a generic one. This needs the installed `.deb` or the AppImage, not `npm run dev`. (HTOO-63)
 
-## For this round (2026-10-11)
+## For this round (2026-11-01)
 
 Write this section again for each round: what applies, and what is already done.
 
-All of A1 to A5 and B1 to B4 apply. They are what Corvath owes after the house standards sweep of 2026-10-11 (Electron 44, the LOCALAPPDATA fix, the asar integrity fuse, the canonical palettes, the macOS title bar and menu).
+All of A1 to A5 and B1 to B4 apply. The November 2026 release changes what each check covers:
 
-**Done on the Mac** (macOS 27.0.1, Apple Silicon, `6dae72f`, 2026-10-11): A1 to A5 and B1 to B3 pass, and nothing failed. The results are on the cards that each check names, and in Corvath's row of `macos-chrome.md` §10.
+- **Electron 44.10.0** (HTOO-607), from 44.7.0. A1 to A5 and B1 run again on the new runtime: the gate, e2e, the real data folder, the fuses and the asar check.
+- **Eight themes**, with Shattered and Untamed (HTOO-572, the template at `58fa416`). B2 and B4.4 cover each of the eight.
+- **The nav bar** (HTOO-629). The page tabs became the house nav bar on `tertiary.main`. B2.4 and B4.4 check it.
 
-**Done on the Linux box** (Linux Mint 22.3, x86_64, Cinnamon on X11, `40e706d`, 2026-10-12): A1 (666 passed), A2 (21 passed and 4 skipped), A3, A4, B1 and B4 pass. B4.5 first failed: the `.deb` did not package, because the `linux:` block had no `maintainer`. PR #6 (merged) fixes it, and B4.5 passes on that build. The results are on the cards that each check names, and the failure and the fix are on HTOO-63.
-
-**Nothing is owed** on this page for this round.
+The owed rows are a checklist on HTOO-230. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
 Done on Windows, and not on this page:
 
-- **The theme check** of chips, tabs, filled buttons, the engraved bars and the theme picker (HTOO-355, HTOO-572). Sabrael checked it by eye on 2026-10-11.
-- **No blank Setup window** when the portable exe closes (HTOO-466). Sabrael checked it by eye on 2026-10-11.
-- **The portable sweep and the single-instance lock** (HTOO-494, HTOO-351). They are Windows only, and they were checked on the packaged portable exe.
-- **Remote Desktop** (HTOO-325). Taken as passed without a real RDP session: a fault there is rare, and a report from a user is the trigger to set one up.
+- **The theme check** of the eight themes, the nav bar, the disabled buttons and the grey list icons (HTOO-572, HTOO-629, HTOO-639). Sabrael checked it by eye on 2026-11-01.
+- **The gate and e2e on Electron 44.10.0.** `npm run validate`: 1192 passed. `npm run e2e`: 23 passed, 4 skipped (the macOS menu).
 
 Not on this page:
 
 - **The Dock check** (`macos-chrome.md` §6). Corvath runs no git, so the launch-env modules do not apply.
 - **Signing.** The Windows signing and the macOS notarization run only in the release workflow, on a tag.
+- **The October round** (2026-10-11 and 2026-10-12) passed on both machines with nothing owed. Its results are on the cards that each check names, on HTOO-63, and in Corvath's row of `macos-chrome.md` §10.
