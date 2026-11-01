@@ -11,7 +11,16 @@ import type { Deck, Layout, Reading, Settings } from '../../shared/types'
 // fields are dropped rather than rejected; missing required fields or wrong
 // types are what fail.
 
-const THEME_NAMES = ['hybrasyl', 'danaan', 'chadul', 'grinneal', 'mundanes', 'dubhaimid'] as const
+const THEME_NAMES = [
+  'hybrasyl',
+  'danaan',
+  'chadul',
+  'grinneal',
+  'shattered',
+  'untamed',
+  'mundanes',
+  'dubhaimid'
+] as const
 
 export const themeNameSchema = z.enum(THEME_NAMES)
 export const orientationSchema = z.enum(['upright', 'reversed'])

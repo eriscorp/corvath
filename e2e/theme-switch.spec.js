@@ -6,9 +6,18 @@ import { launchApp, getMainWindow } from './helpers.js'
 // THEME_NAMES, and the themesByName map) and a miss in any of them fails quietly
 // — the picker still shows the entry, but the theme silently falls back. This is
 // the cheapest way to catch that, and it also exercises the plain and the
-// engraved title bars.
+// decorated title bars.
 
-const THEMES = ['hybrasyl', 'danaan', 'chadul', 'grinneal', 'mundanes', 'dubhaimid']
+const THEMES = [
+  'hybrasyl',
+  'danaan',
+  'chadul',
+  'grinneal',
+  'shattered',
+  'untamed',
+  'mundanes',
+  'dubhaimid'
+]
 
 test.describe('Themes', () => {
   let electronApp
@@ -27,7 +36,7 @@ test.describe('Themes', () => {
     const backgrounds = new Set()
 
     // The picker moved to Settings (HTOO-408); it is a page now, not chrome.
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
 
     for (const theme of THEMES) {
       // The picker is a radio group of preview cards, one per theme.
@@ -41,7 +50,7 @@ test.describe('Themes', () => {
       backgrounds.add(await root.evaluate((el) => getComputedStyle(el).backgroundColor))
     }
 
-    // Distinct palettes, not six aliases of the same fallback.
+    // Distinct palettes, not eight aliases of the same fallback.
     expect(backgrounds.size).toBeGreaterThan(1)
     expect(errors).toEqual([])
   })

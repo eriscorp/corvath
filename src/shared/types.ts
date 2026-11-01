@@ -3,35 +3,21 @@ import type { MenuMessage, MenuState } from './appMenu'
 
 export type Orientation = 'upright' | 'reversed'
 
-export type ThemeName = 'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'mundanes' | 'dubhaimid'
+export type ThemeName =
+  'hybrasyl' | 'danaan' | 'chadul' | 'grinneal' | 'shattered' | 'untamed' | 'mundanes' | 'dubhaimid'
 
-/** The six themes, in the order the theme picker shows them. Main validates a
+/** The eight themes, in the order the theme picker shows them. Main validates a
  *  stored theme against its own copy in `main/schemas`. */
 export const THEME_NAMES: ThemeName[] = [
   'hybrasyl',
   'danaan',
   'chadul',
   'grinneal',
+  'shattered',
+  'untamed',
   'mundanes',
   'dubhaimid'
 ]
-
-/**
- * The "corporate/plain" themes: a flat navy bar with white text and no edge.
- * `chromeContrast.test.tsx` uses it to tell them from the decorated themes.
- */
-export const PLAIN_CHROME_THEMES: ThemeName[] = ['mundanes', 'dubhaimid']
-
-/**
- * The decorated themes whose bar text (`secondary.contrastText`) is dark. A
- * dark edge outlines LIGHT text; around dark text it merges with the glyph and
- * doubles its edges, so these bars are engraved instead (a thin cream edge
- * below and right, as if cut into the bar). An explicit list, not a luminance
- * rule in the component, so a palette tweak near the line cannot flip a theme's
- * chrome by accident (HTOO-572). `chromeContrast.test.tsx` fails when the list
- * and the palettes disagree.
- */
-export const ENGRAVED_CHROME_THEMES: ThemeName[] = ['danaan', 'grinneal']
 
 /** A single card / question within a reading. */
 export interface Entry {
@@ -118,7 +104,7 @@ export interface Settings {
   theme: ThemeName
   /**
    * Draw-tab defaults. All optional, and all referring to things the user can
-   * delete — a deck or a spread can be gone by the next launch, so the Draw tab
+   * delete — a deck or a spread can be gone by the next launch, so the Draw page
    * treats an id that no longer resolves as "no default" rather than as an
    * error. Storing ids rather than names is deliberate: a rename must not
    * silently drop the default.

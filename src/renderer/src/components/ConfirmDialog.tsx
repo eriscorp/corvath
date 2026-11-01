@@ -21,7 +21,7 @@ interface ConfirmDialogProps {
  * A themed confirmation, replacing `window.confirm`.
  *
  * **Why not `window.confirm`.** Corvath is frameless, draws its own title bar and
- * ships six themes; the browser dialog is unstyled OS chrome that ignores all of
+ * ships eight themes; the browser dialog is unstyled OS chrome that ignores all of
  * it, and it blocks the renderer thread while open. There was exactly one
  * `window.confirm` in the app (applying a layout over a filled reading) and
  * HTOO-409 needed a second, which is the point at which one shared component is

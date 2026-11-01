@@ -10,9 +10,9 @@ import { launchApp, getMainWindow } from './helpers.js'
 const MIN_FAN_STEP = 16 // must match Draw.tsx
 const FAN_W = 88
 
-/** Open the Draw tab and fill in the setup form. */
+/** Open the Draw page and fill in the setup form. */
 async function setUpDraw(page, { spread, mode = 'deal', title = 'A spec draw' } = {}) {
-  await page.getByRole('tab', { name: 'Draw' }).click()
+  await page.getByTestId('nav-bar').getByRole('button', { name: 'Draw' }).click()
   await page.getByLabel('Title').fill(title)
   if (spread) {
     await page.getByRole('combobox', { name: 'Spread' }).click()
@@ -33,7 +33,7 @@ const unspentFanCards = (page) => page.locator('[data-testid="fan-card"][data-sp
 // whichever card is painted on top of it.
 const clickFanCard = (card) => card.click({ position: { x: 4, y: 60 } })
 
-test.describe('Draw tab', () => {
+test.describe('Draw page', () => {
   let electronApp
 
   test.afterEach(async () => {
@@ -136,10 +136,9 @@ test.describe('Draw tab', () => {
     await page.getByRole('button', { name: 'Save Reading' }).click()
 
     // The handoff: Draw hands the new id up and the app switches view.
-    await expect(page.getByRole('tab', { name: 'Readings' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    )
+    await expect(
+      page.getByTestId('nav-bar').getByRole('button', { name: 'Readings' })
+    ).toHaveAttribute('aria-current', 'page')
     // And it reaches disk through the debounced store save, not just React state.
     await expect
       .poll(() => page.evaluate(() => window.api.readings.getAll().then((r) => r.length)), {

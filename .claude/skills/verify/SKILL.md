@@ -33,9 +33,9 @@ Then `GET http://127.0.0.1:9222/json/list`, take the `page` target whose url is 
 
 ## Selectors that work
 
-There are a few test ids (added for the e2e harness, which waits on `app-root`): `app-root` (carries `data-theme`), `app-hydrating`, `title-bar`, `theme-select` (the theme picker's radio group on Settings) and `theme-option-<name>` (one card per theme; click it to switch). Everything else is MUI markup; these hold up:
+There are a few test ids (added for the e2e harness, which waits on `app-root`): `app-root` (carries `data-theme`), `app-hydrating`, `title-bar`, `nav-bar`, `theme-select` (the theme picker's radio group on Settings) and `theme-option-<name>` (one card per theme; click it to switch). Everything else is MUI markup; these hold up:
 
-- Tabs: `button[role="tab"]` — order is Readings, Draw, Decks, Layouts.
+- Pages: `[data-testid="nav-bar"] button`, found by its text — order is Readings, Draw, Decks, Layouts, Settings. The current page has `aria-current="page"`.
 - Selects: `.MuiSelect-select` (click to open, then `li[role="option"]`).
 - Sidebar lists: `.MuiListItemButton-root`.
 - Cards (`DrawCard`): a `div` with `perspective: 700px`. Width distinguishes them — 150px in the slot tray, 88px in the fan pile.
@@ -46,6 +46,6 @@ There are a few test ids (added for the e2e harness, which waits on `app-root`):
 ## Flows worth driving
 
 - **Draw / Fan & pick** is the richest surface. Seed a layout with `source: 'top'|'bottom'` on some positions (no built-in spread sets `source`), pick the spread, toggle Fan & pick, Shuffle & Draw. Pinned slots should arrive pre-filled and their fan cards spent at indices `[0, n-1]`.
-- **Deck seeding** shows on the Decks tab against a fresh profile.
+- **Deck seeding** shows on the Decks page against a fresh profile.
 - **Spread board art** (reading view) — the fiddliest case is a _reversed_ card in a _rotated_ crossing position: `LayoutBoard` rotates the tile by `position.rotation` and the `<img>` inside it by 180° when reversed, so the two compose (a reversed Celtic Cross challenge card reads as 270°). To set one up deterministically, seed `readings.json` directly rather than drawing: read the position ids out of the seeded `layouts.json`, then write entries keyed by `positionId` with `orientation: 'reversed'` on the `rotation: 90` one. Assert on `getComputedStyle(img).transform` — `matrix(-1, 0, 0, -1, 0, 0)` is the 180° — and check `naturalWidth > 0` to prove the art loaded rather than silently falling back.
 - **Width/layout** — `Emulation.setDeviceMetricsOverride` to 1920x1080 and to the 940 minWidth, then compare `documentElement.scrollWidth` to `clientWidth`. `main.css` sets `body { overflow: hidden }`, so horizontal overflow silently clips instead of showing a scrollbar — measure, don't eyeball.

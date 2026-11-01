@@ -12,10 +12,14 @@ function rgb(hex: string): string {
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
 }
 
-function renderCard(value: ThemeName, onChange = vi.fn()): ReturnType<typeof vi.fn> {
+function renderCard(
+  value: ThemeName,
+  onChange = vi.fn(),
+  onOpenGallery = vi.fn()
+): ReturnType<typeof vi.fn> {
   render(
     <ThemeProvider theme={themesByName[value]}>
-      <AppearanceCard value={value} onChange={onChange} />
+      <AppearanceCard value={value} onChange={onChange} onOpenGallery={onOpenGallery} />
     </ThemeProvider>
   )
   return onChange
@@ -45,8 +49,15 @@ describe('AppearanceCard', () => {
     expect(onChange).toHaveBeenCalledWith('grinneal')
   })
 
-  // The selection mark is primary.main, the token the palette test holds at 3:1
-  // on the page and on paper. On danaan, primary.light is near the parchment
+  it('opens the theme gallery', async () => {
+    const onOpenGallery = vi.fn()
+    renderCard('hybrasyl', vi.fn(), onOpenGallery)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Theme gallery' }))
+    expect(onOpenGallery).toHaveBeenCalledOnce()
+  })
+
+  // The selection mark is primary.main, the token the palette test holds at
+  // 4.5:1 on the page and on paper. On danaan, primary.light is near the parchment
   // (HTOO-572).
   it.each(THEME_NAMES)('%s: marks the selected theme with primary.main', (name) => {
     renderCard(name)

@@ -40,7 +40,7 @@ async function serveManifest(electronApp, manifest) {
 const manifestRequests = (electronApp) => electronApp.evaluate(() => globalThis.__manifestRequests)
 
 async function openAboutCard(page) {
-  await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+  await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
   const card = page.getByTestId('about-card')
   await expect(card.getByTestId('about-version')).toContainText(/Version \d+\.\d+\.\d+/)
   return card
@@ -94,7 +94,7 @@ test.describe('Update check', () => {
     await expect(notice).toBeVisible({ timeout: START_WAIT_MS })
     await expect(notice.getByRole('link', { name: 'View release' })).toHaveAttribute('href', url)
 
-    // A click elsewhere (here, the Settings tab) does not close it: HTOO-65's
+    // A click elsewhere (here, the Settings page) does not close it: HTOO-65's
     // defect 2. The X does, and it stores the version.
     const card = await openAboutCard(page)
     await expect(notice).toBeVisible()

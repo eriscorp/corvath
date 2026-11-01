@@ -14,14 +14,14 @@ interface DrawDefaultsCardProps {
 const NONE = ''
 
 /**
- * What the Draw tab starts on.
+ * What the Draw page starts on.
  *
  * Each of these is a default a user would otherwise re-pick on every draw, which
  * is the bar the register set for a setting earning its place. Nothing here
- * changes an existing draw: the Draw tab reads them once, when it mounts.
+ * changes an existing draw: the Draw page reads them once, when it mounts.
  *
  * **A default is a preference, not a constraint.** Every one of them can still be
- * changed on the Draw tab itself, and each can be set back to "None" — a control
+ * changed on the Draw page itself, and each can be set back to "None" — a control
  * the user cannot un-set is a worse bug than the one it was added to fix.
  *
  * The card owns its own `Paper`, as the About and Appearance cards do, so the
@@ -47,7 +47,7 @@ export default function DrawDefaultsCard({ decks, layouts }: DrawDefaultsCardPro
         Draw defaults
       </Typography>
       <Typography variant="body2" sx={cardDescSx}>
-        What the Draw tab starts on. You can still change any of them for a single draw.
+        What the Draw page starts on. You can still change any of them for a single draw.
       </Typography>
 
       <Stack spacing={2} sx={{ maxWidth: 360 }}>

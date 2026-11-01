@@ -5,7 +5,7 @@ import { themesByName } from '../index'
 import type { Reading, ThemeName } from '@shared/types'
 import CardPreview from '@renderer/components/CardPreview'
 import ReadingEditor from '@renderer/components/ReadingEditor'
-import { contrast, luminance, parseColor } from './contrast'
+import { contrast, luminance, parseColor } from '@renderer/lib/contrast'
 
 const THEME_NAMES = Object.keys(themesByName) as ThemeName[]
 
@@ -68,11 +68,12 @@ function onFill(label: string, fill: string, under: string): number {
  * override painted every chip with the same tint, so a `secondary` chip drew
  * like a plain one and its colour did no harm. With the fix, an OUTLINED
  * `secondary` chip draws the bar colour as text on the page: hybrasyl's
- * `#1e5e56` on its navy page, danaan's gold on its parchment. So corvath's two
- * marked chips (a reversed card, a reading Corvath drew) are FILLED: the chip
- * takes `secondary.main` and `secondary.contrastText`, which the palette test
- * holds at 4.5:1. The template renders none of these chips, so its tests
- * cannot see this.
+ * `#1e5e56` on its navy page, grinneal's brown on its dark page. So corvath's
+ * two marked chips (a reversed card, a reading Corvath drew) are FILLED: the
+ * chip takes `secondary.main` and `secondary.contrastText`, which the palette
+ * test holds at 4.5:1. The house rule is the same: `secondary` is a fill only,
+ * not text and not an outline (Sabrael, 2026-10-23). The template renders none
+ * of these chips, so its tests cannot see this.
  */
 describe('a chip in corvath', () => {
   afterEach(cleanup)
@@ -96,8 +97,10 @@ describe('a chip in corvath', () => {
   })
 
   it('an outlined secondary chip cannot read in every theme, which is why corvath fills it', () => {
-    // When this fails, the bar colours have changed in the template, and an
-    // outlined `secondary` chip may be possible again.
+    // When this fails, the bar colours have changed in the template. The house
+    // rule stays: `secondary` is a fill only. The reviewed palette gives danaan
+    // a dark bronze bar, so on danaan's parchment the outline reads (7.7:1);
+    // in these four themes it does not (1.2:1 to 2.4:1 on the page).
     const fails = THEME_NAMES.filter((name) => {
       const theme = themesByName[name]
       render(
@@ -109,7 +112,6 @@ describe('a chip in corvath', () => {
       cleanup()
       return contrast(text, theme.palette.background.default) < 4.5
     })
-    expect(fails).toContain('hybrasyl')
-    expect(fails).toContain('danaan')
+    expect(fails).toEqual(expect.arrayContaining(['hybrasyl', 'chadul', 'grinneal', 'dubhaimid']))
   })
 })

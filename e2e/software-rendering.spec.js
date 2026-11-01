@@ -22,7 +22,7 @@ import { launchApp, getMainWindow } from './helpers.js'
 
 /** Read the backdrop filter of the first Paper on the Settings page. */
 async function paperBackdropFilter(page) {
-  await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+  await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
   // Any rendered Paper will do; Settings always renders several cards.
   const paper = page.locator('[data-testid="settings-page"] .MuiPaper-root').first()
   await paper.waitFor({ state: 'visible' })

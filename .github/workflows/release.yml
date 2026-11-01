@@ -52,10 +52,16 @@ permissions:
 # exe"). Do not add the env again without a holdout that needs it (HTOO-517).
 
 jobs:
+  # The Linux jobs name `ubuntu-24.04`, not `ubuntu-latest` (house-wide,
+  # 2026-10-29). GitHub moves `ubuntu-latest` to Ubuntu 26 from 2026-10-19, and
+  # a new image under a release build is a change nobody chose: xvfb and the
+  # packaging tools come from the image. Move to a newer image on purpose, in
+  # its own commit, after one `workflow_dispatch` run on it passes.
+  #
   # Fast sanity gate before three platform builds start. ci.yml is the real gate
   # on the way into main; this catches a tag cut from a broken commit.
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
@@ -321,7 +327,7 @@ jobs:
           retention-days: 1
 
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: validate
 
     steps:
@@ -359,7 +365,7 @@ jobs:
           retention-days: 1
 
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-windows, build-mac, build-linux]
     if: github.ref_type == 'tag'
 
