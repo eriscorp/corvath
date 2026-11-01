@@ -30,9 +30,10 @@ interface SettingsPageProps {
  * carry and a line of documentation, for nothing.
  *
  * The Appearance card opens the theme gallery (HTOO-572) in place of the cards.
- * Its Back button returns to the cards. The gallery is not a nav tab: it is a
- * review tool under Settings, so the Settings tab stays selected. A tab change
- * unmounts this page, so the cards show again on the next visit.
+ * Its Back button returns to the cards. The gallery is not a nav page: it is a
+ * review tool under Settings, so the Settings button stays current on the nav
+ * bar. A page change unmounts this page, so the cards show again on the next
+ * visit.
  */
 export default function SettingsPage({
   theme,

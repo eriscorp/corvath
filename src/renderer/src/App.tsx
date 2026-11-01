@@ -28,8 +28,8 @@ function App(): React.JSX.Element {
   // In a store, not here: the macOS menu switches pages too (viewStore.ts).
   const view = useViewStore((s) => s.view)
   const setView = useViewStore((s) => s.setView)
-  // Lifted so the Draw tab can select the reading it produces when it hands off
-  // to the Readings tab.
+  // Lifted so the Draw page can select the reading it produces when it hands off
+  // to the Readings page.
   const [selectedReadingId, setSelectedReadingId] = useState<string | null>(null)
   const decksApi = useDecks()
   const layoutsApi = useLayouts()

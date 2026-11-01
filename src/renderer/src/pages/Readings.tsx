@@ -22,10 +22,10 @@ interface ReadingsProps {
   decks: Deck[]
   /** Layouts from the builder, offered as spreads. */
   layouts: Layout[]
-  /** Selected reading id, lifted to App so the Draw tab can hand one off. */
+  /** Selected reading id, lifted to App so the Draw page can hand one off. */
   selectedId: string | null
   onSelectId: (id: string | null) => void
-  /** Switch to the Draw tab. */
+  /** Switch to the Draw page. */
   onGoToDraw: () => void
 }
 

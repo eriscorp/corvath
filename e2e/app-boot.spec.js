@@ -28,9 +28,9 @@ test.describe('App boots', () => {
     await expect(page.getByTestId('app-hydrating')).toHaveCount(0)
     await expect(page.getByTestId('app-root')).toBeVisible()
 
-    // All four tabs are present.
+    // All four pages have a button on the nav bar.
     for (const tab of ['Readings', 'Draw', 'Decks', 'Layouts']) {
-      await expect(page.getByRole('tab', { name: tab })).toBeVisible()
+      await expect(page.getByTestId('nav-bar').getByRole('button', { name: tab })).toBeVisible()
     }
   })
 

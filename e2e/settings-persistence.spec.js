@@ -21,7 +21,7 @@ test.describe('Settings persist across a restart', () => {
 
     // The theme picker lives on the Settings page now, not the title bar
     // (HTOO-408).
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     // Pick a non-default theme (default is hybrasyl).
     await page.getByTestId('theme-option-mundanes').click()
 
@@ -46,7 +46,7 @@ test.describe('Settings persist across a restart', () => {
     // …and it's actually applied in the hydrated UI, with no default-theme flash.
     await expect(page.getByTestId('app-root')).toHaveAttribute('data-theme', 'mundanes')
     // The picker shows it too: its Mundanes card is the checked one.
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     await expect(page.getByTestId('theme-option-mundanes')).toHaveAttribute('aria-checked', 'true')
   })
 })

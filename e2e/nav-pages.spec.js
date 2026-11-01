@@ -57,16 +57,20 @@ test.describe('Every nav destination', () => {
 
     for (const item of NAV_ITEMS) {
       await test.step(item.view, async () => {
-        await page.getByRole('tab', { name: item.label, exact: true }).click()
-        // The page-level hook: present AND visible. A tab that selects while its
-        // panel throws leaves the tab looking right and the body empty. First, so
-        // a page that crashes on mount fails here, by name, rather than on the
-        // tab, which the error boundary removes with everything else.
+        await page
+          .getByTestId('nav-bar')
+          .getByRole('button', { name: item.label, exact: true })
+          .click()
+        // The page-level hook: present AND visible. A nav button that marks its
+        // page while the page throws leaves the bar looking right and the body
+        // empty. First, so a page that crashes on mount fails here, by name,
+        // rather than on the button, which the error boundary removes with
+        // everything else.
         await expect(page.getByTestId(item.testId), `${item.view}: page marker`).toBeVisible()
         await expect(
-          page.getByRole('tab', { name: item.label, exact: true }),
-          `${item.view}: tab selected`
-        ).toHaveAttribute('aria-selected', 'true')
+          page.getByTestId('nav-bar').getByRole('button', { name: item.label, exact: true }),
+          `${item.view}: nav button current`
+        ).toHaveAttribute('aria-current', 'page')
         // Let the page's first IPC replies land, so a fault in the render they
         // start is charged to this page and not the next one. Taliesin and epona
         // each proved the wait necessary with a throw 100 ms after mount.
@@ -100,7 +104,7 @@ test.describe('Settings page', () => {
     const errors = []
     page.on('pageerror', (err) => errors.push(`${err.message}`))
 
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     await page
       .getByTestId('appearance-card')
       .getByRole('button', { name: 'Theme gallery', exact: true })
@@ -117,7 +121,7 @@ test.describe('Settings page', () => {
   test('carries the theme picker and the About card', async () => {
     ;({ electronApp } = await launchApp())
     const page = await getMainWindow(electronApp)
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
 
     // The picker moved off the title bar; it must be reachable BY ROLE here.
     // It is the house picker, a radio group with an accessible name, one radio
@@ -154,7 +158,7 @@ test.describe('Settings page', () => {
     // hands a URL to the OS and writes the clipboard.
     ;({ electronApp } = await launchApp())
     const page = await getMainWindow(electronApp)
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByTestId('report-issue').click()
 
     const dialog = page.getByRole('dialog')
@@ -183,7 +187,7 @@ test.describe('Settings page', () => {
     // check that the allowlist entry is actually there and the IPC reaches it.
     ;({ electronApp } = await launchApp())
     const page = await getMainWindow(electronApp)
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByRole('button', { name: "What's new…" }).click()
 
     const dialog = page.getByRole('dialog')
@@ -211,7 +215,7 @@ test.describe('Draw defaults', () => {
     await electronApp?.close()
   })
 
-  test('a chosen default reaches the Draw tab and survives a relaunch', async () => {
+  test('a chosen default reaches the Draw page and survives a relaunch', async () => {
     // The full chain, which no unit test spans: Settings control -> screened
     // setter -> debounced whole-document save -> settingsSchema -> disk ->
     // hydrate -> Draw's lazy initial state.
@@ -219,7 +223,7 @@ test.describe('Draw defaults', () => {
     ;({ electronApp, localAppData } = await launchApp())
     let page = await getMainWindow(electronApp)
 
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
     await page.getByTestId('default-deck-select').click()
     await page.getByRole('option', { name: 'Empyrean', exact: true }).click()
     await page.getByTestId('default-mode-select').click()
@@ -244,7 +248,7 @@ test.describe('Draw defaults', () => {
 
     ;({ electronApp } = await launchApp({ localAppData }))
     page = await getMainWindow(electronApp)
-    await page.getByRole('tab', { name: 'Draw', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Draw', exact: true }).click()
 
     await expect(page.getByRole('combobox', { name: 'Deck' })).toContainText('Empyrean')
     await expect(page.getByTestId('draw-mode-fan')).toHaveAttribute('aria-pressed', 'true')

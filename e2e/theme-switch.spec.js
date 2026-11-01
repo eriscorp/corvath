@@ -36,7 +36,7 @@ test.describe('Themes', () => {
     const backgrounds = new Set()
 
     // The picker moved to Settings (HTOO-408); it is a page now, not chrome.
-    await page.getByRole('tab', { name: 'Settings', exact: true }).click()
+    await page.getByTestId('nav-bar').getByRole('button', { name: 'Settings', exact: true }).click()
 
     for (const theme of THEMES) {
       // The picker is a radio group of preview cards, one per theme.
