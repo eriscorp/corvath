@@ -55,7 +55,7 @@ npm run validate && npm run build && grep -o 'require("[^"]*")' out/preload/inde
 
 Every step must pass. The `grep` must print `require("electron")` only. The preload is sandboxed, and a sandboxed preload can load only `electron` (HTOO-54). Report the test count.
 
-The suite is 1195 passed and 0 skipped (2026-11-02, after the splash test). No unit test in Corvath depends on the OS, so expect the same count on each machine. Report the exact numbers, and name any test that fails or skips.
+The suite is 1198 passed and 0 skipped (2026-11-02, after the splash and window-button tests). No unit test in Corvath depends on the OS, so expect the same count on each machine. Report the exact numbers, and name any test that fails or skips.
 
 ### A2 and A3. e2e on Electron 44, and the real data stays the same (both OS) — HTOO-553, HTOO-543
 
@@ -169,7 +169,7 @@ On each of the eight themes (Settings → Appearance):
 Sabrael retired the Linux chrome checks on 2026-11-02, after they passed in the November round. Tests cover each one, and A1 runs them:
 
 - **The round splash spinner** (HTOO-553): `src/main/__tests__/splash.test.ts` pins `flex-shrink: 0` on the spinner and the logo, and the spinner's equal width and height and `border-radius: 50%`.
-- **The title bar buttons:** `TitleBar.test.tsx` checks that each button calls its window control. What the desktop does then is Electron's.
+- **The title bar buttons:** `TitleBar.test.tsx` checks that each button calls its window control, and `src/main/__tests__/handlers-window.test.ts` what main does with it: minimise minimises, maximise maximises and a second press restores, and close closes the window that sent it.
 - **The title bar and the nav bar on the eight themes** (HTOO-572, HTOO-629): `chromeContrast.test.tsx` (the bar text and glyphs, the outline or the flat bar, the hover and close-hover colours, the nav-bar buttons), `tertiary.test.ts` (the nav bar differs from the title bar) and `NavBar.test.tsx` (the open page's ring). `e2e/theme-switch.spec.js` applies all eight in the real app.
 - **The taskbar icon** (HTOO-63): #93's fix holds, and `scripts/icons.test.mjs` pins the hicolor set and the config that installs it.
 
@@ -187,7 +187,7 @@ All of A1 to A5 and B1 to B4 applied. The November 2026 release changed what eac
 
 **Done on the Mac** (macOS 27.0.1, Apple Silicon, `7c3f3ba`, 2026-11-02): A1 (1192 passed), A2 (27 passed), A3, A4, A5 and B1 to B3 pass, and nothing failed. B2 covered the eight themes and the nav bar. The results are on the cards that each check names, on HTOO-230, and in Corvath's row of `macos-chrome.md` §10.
 
-**Done on Linux** (Linux Mint 22.3, `b878577`, 2026-11-02): A1 (1192 passed; the preload requires only `electron`), A2 (23 passed, 4 skipped), A3 (UNCHANGED), A4 (fuses OK, 1 wire) and A5 (RUNNING after 10s, no integrity line) pass. Sabrael's checks at the machine, on `dist/linux-unpacked/corvath`, pass: B1 with the deck art, and all of the old B4 on the eight themes. B4 is then retired (above). The splash test added with it brings A1 to 1195. The results are on the cards that each check names and on HTOO-230.
+**Done on Linux** (Linux Mint 22.3, `b878577`, 2026-11-02): A1 (1192 passed; the preload requires only `electron`), A2 (23 passed, 4 skipped), A3 (UNCHANGED), A4 (fuses OK, 1 wire) and A5 (RUNNING after 10s, no integrity line) pass. Sabrael's checks at the machine, on `dist/linux-unpacked/corvath`, pass: B1 with the deck art, and all of the old B4 on the eight themes. B4 is then retired (above). The splash and window-button tests added with it bring A1 to 1198. The results are on the cards that each check names and on HTOO-230.
 
 Nothing is owed on either machine. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
