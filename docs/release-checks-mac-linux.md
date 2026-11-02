@@ -84,9 +84,9 @@ If `sha256sum` is missing, use `shasum -a 256`.
 
 Expected for A2:
 
-- **macOS:** 25 passed. That includes the four tests in `e2e/app-menu.spec.js`, which runs on macOS only: the installed menu with no Reload and an empty title bar, Check for Updates…, Go and the grey Export All Readings… with nothing run over a dialog, and About Corvath and What's New.
-- **Linux:** 21 passed and 4 skipped. The skips are `app-menu.spec.js`.
-- On Windows the result is also 21 passed and 4 skipped.
+- **macOS:** 27 passed. That includes the four tests in `e2e/app-menu.spec.js`, which runs on macOS only: the installed menu with no Reload and an empty title bar, Check for Updates…, Go and the grey Export All Readings… with nothing run over a dialog, and About Corvath and What's New.
+- **Linux:** 23 passed and 4 skipped. The skips are `app-menu.spec.js`.
+- On Windows the result is also 23 passed and 4 skipped.
 
 A different total means that a spec was added or was not collected. Say so in the report. An `e2e isolation failed` error is an A3 failure: report it on HTOO-543.
 
@@ -180,6 +180,10 @@ All of A1 to A5 and B1 to B4 apply. The November 2026 release changes what each 
 - **Electron 44.10.0** (HTOO-607), from 44.7.0. A1 to A5 and B1 run again on the new runtime: the gate, e2e, the real data folder, the fuses and the asar check.
 - **Eight themes**, with Shattered and Untamed (HTOO-572, the template at `58fa416`). B2 and B4.4 cover each of the eight.
 - **The nav bar** (HTOO-629). The page tabs became the house nav bar on `tertiary.main`. B2.4 and B4.4 check it.
+
+**Done on the Mac** (macOS 27.0.1, Apple Silicon, `7c3f3ba`, 2026-11-02): A1 (1192 passed), A2 (27 passed), A3, A4, A5 and B1 to B3 pass, and nothing failed. B2 covered the eight themes and the nav bar. The results are on the cards that each check names, on HTOO-230, and in Corvath's row of `macos-chrome.md` §10.
+
+**Still owed on the Linux box:** A1 to A4, B1 and B4.
 
 The owed rows are a checklist on HTOO-230. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
