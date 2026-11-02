@@ -55,7 +55,7 @@ npm run validate && npm run build && grep -o 'require("[^"]*")' out/preload/inde
 
 Every step must pass. The `grep` must print `require("electron")` only. The preload is sandboxed, and a sandboxed preload can load only `electron` (HTOO-54). Report the test count.
 
-On Windows the suite is 1192 passed and 0 skipped (2026-11-01). No unit test in Corvath depends on the OS, so expect the same count here. Report the exact numbers, and name any test that fails or skips.
+The suite is 1195 passed and 0 skipped (2026-11-02, after the splash test). No unit test in Corvath depends on the OS, so expect the same count on each machine. Report the exact numbers, and name any test that fails or skips.
 
 ### A2 and A3. e2e on Electron 44, and the real data stays the same (both OS) — HTOO-553, HTOO-543
 
@@ -118,27 +118,28 @@ npm run verify:fuses -- dist/linux-unpacked/corvath
 
 Expected: one wire, OK. The reader checks all five fuses on Linux too. electron-builder sets the asar integrity fuse there, and Linux does not enforce it.
 
-### A5. The packaged app gets past the asar check (macOS) — HTOO-381
+### A5. The packaged app gets past the asar check and starts (both OS) — HTOO-381
 
-With the asar integrity fuse on, a damaged package exits with no window and no message. The only signs of the failure are a non-zero exit and `ASAR Integrity Violation` on stderr, so start the binary from the terminal. Point it at a temp folder so that it does not write the real data:
+With the asar integrity fuse on, a damaged package exits with no window and no message. The only signs of the failure are a non-zero exit and `ASAR Integrity Violation` on stderr, so start the binary from the terminal. Point it at a temp folder so that it does not write the real data. On Linux, use `dist/linux-unpacked/corvath` for the binary. The e2e suite runs the app from `out/`, not the package, so this is the only automated check that the packaged app starts on each OS.
 
 ```bash
 T=$(mktemp -d)
-LOCALAPPDATA="$T" dist/mac-universal/Corvath.app/Contents/MacOS/Corvath 2>"$T/stderr.txt" &
+BIN=dist/mac-universal/Corvath.app/Contents/MacOS/Corvath   # Linux: dist/linux-unpacked/corvath
+LOCALAPPDATA="$T" "$BIN" 2>"$T/stderr.txt" &
 P=$!; for i in $(seq 1 10); do kill -0 $P 2>/dev/null || break; sleep 1; done
 kill -0 $P 2>/dev/null && { echo "RUNNING after 10s"; kill $P; } || { wait $P; echo "EXITED $?"; }
 grep -i integrity "$T/stderr.txt"
 ```
 
-Expected: `RUNNING after 10s`, and no integrity line. The deck art is in `bundled/`, which is outside the asar (`asarUnpack`), so the fuse does not check it. B1 then checks what the window shows.
+Expected: `RUNNING after 10s`, and no integrity line. The deck art is in `bundled/`, which is outside the asar (`asarUnpack`), so the fuse does not check it. B1 then checks that the window shows it.
 
 ## Part B: checks a person does
 
-Use the packaged app from A4 for B1 and B3. Use `npm run dev` or the packaged app for the others. Ask the person to do each step and tell you what they saw.
+Use the packaged app from A4 for B1 and B3. Use `npm run dev` or the packaged app for B2. Ask the person to do each step and tell you what they saw.
 
-### B1. The packaged app starts (both OS) — HTOO-381
+### B1. The packaged app shows the deck art (both OS) — HTOO-381
 
-Open `dist/mac-universal/Corvath.app` on macOS, or run `dist/linux-unpacked/corvath` on Linux. **Expected:** the splash, then the main window, with the deck art on the Decks page.
+Open `dist/mac-universal/Corvath.app` on macOS, or run `dist/linux-unpacked/corvath` on Linux, and open the Decks page. **Expected:** each deck shows its art. No test reads the art from `bundled/` in a packaged app; A5 covers the start itself.
 
 ### B2. The title bar (macOS)
 
@@ -163,29 +164,32 @@ On each of the eight themes (Settings → Appearance):
 10. **⌘Q** quits the app.
 11. **The file pickers:** with at least one reading saved, use **File → Export All Readings…** and save the file in `~/Documents`. Then open **File → Import Readings…** and cancel it. No privacy prompt appears for the second picker. (The picker checks that the last folder still exists before it opens there.)
 
-### B4. The chrome on Linux (Linux) — HTOO-553, HTOO-572
+### B4. The chrome on Linux: retired
 
-1. **The splash:** the spinner under the logo is a round ring, not an oval. (The font falls back from Segoe UI on Linux. The spinner and the logo have `flex-shrink: 0` against that, HTOO-553.)
-2. **The window corners:** since Electron 43 a frameless window can have rounded corners where the desktop supports them. Say whether the corners are round or square, and whether anything looks clipped.
-3. **The title bar buttons:** minimise, maximise (twice, to restore) and close each work.
-4. **The title bar on each of the eight themes** (Settings → Appearance). Hybrasyl, Chadul, Danaan, Grinneal, Shattered and Untamed have a dark bar with light text and a black outline. Mundanes and Dubhaimid are flat, with no outline. On each theme the bar text and the three button glyphs are easy to read, and the close button turns red under the pointer. The nav bar under it has a different colour, each page name on it is easy to read, and the open page has a ring. (HTOO-572, HTOO-629)
-5. **The taskbar and the switcher** show Corvath's icon, not a generic one. This needs the installed `.deb` or the AppImage, not `npm run dev`. (HTOO-63)
+Sabrael retired the Linux chrome checks on 2026-11-02, after they passed in the November round. Tests cover each one, and A1 runs them:
+
+- **The round splash spinner** (HTOO-553): `src/main/__tests__/splash.test.ts` pins `flex-shrink: 0` on the spinner and the logo, and the spinner's equal width and height and `border-radius: 50%`.
+- **The title bar buttons:** `TitleBar.test.tsx` checks that each button calls its window control. What the desktop does then is Electron's.
+- **The title bar and the nav bar on the eight themes** (HTOO-572, HTOO-629): `chromeContrast.test.tsx` (the bar text and glyphs, the outline or the flat bar, the hover and close-hover colours, the nav-bar buttons), `tertiary.test.ts` (the nav bar differs from the title bar) and `NavBar.test.tsx` (the open page's ring). `e2e/theme-switch.spec.js` applies all eight in the real app.
+- **The taskbar icon** (HTOO-63): #93's fix holds, and `scripts/icons.test.mjs` pins the hicolor set and the config that installs it.
+
+The window-corner note was an observation, not a check, and goes with them.
 
 ## For this round (2026-11-01)
 
 Write this section again for each round: what applies, and what is already done.
 
-All of A1 to A5 and B1 to B4 apply. The November 2026 release changes what each check covers:
+All of A1 to A5 and B1 to B4 applied. The November 2026 release changed what each check covers:
 
-- **Electron 44.10.0** (HTOO-607), from 44.7.0. A1 to A5 and B1 run again on the new runtime: the gate, e2e, the real data folder, the fuses and the asar check.
-- **Eight themes**, with Shattered and Untamed (HTOO-572, the template at `58fa416`). B2 and B4.4 cover each of the eight.
-- **The nav bar** (HTOO-629). The page tabs became the house nav bar on `tertiary.main`. B2.4 and B4.4 check it.
+- **Electron 44.10.0** (HTOO-607), from 44.7.0. A1 to A5 and B1 ran again on the new runtime: the gate, e2e, the real data folder, the fuses and the asar check.
+- **Eight themes**, with Shattered and Untamed (HTOO-572, the template at `58fa416`). B2 and the old B4.4 covered each of the eight.
+- **The nav bar** (HTOO-629). The page tabs became the house nav bar on `tertiary.main`. B2.4 and the old B4.4 checked it.
 
 **Done on the Mac** (macOS 27.0.1, Apple Silicon, `7c3f3ba`, 2026-11-02): A1 (1192 passed), A2 (27 passed), A3, A4, A5 and B1 to B3 pass, and nothing failed. B2 covered the eight themes and the nav bar. The results are on the cards that each check names, on HTOO-230, and in Corvath's row of `macos-chrome.md` §10.
 
-**Still owed on the Linux box:** A1 to A4, B1 and B4.
+**Done on Linux** (Linux Mint 22.3, `b878577`, 2026-11-02): A1 (1192 passed; the preload requires only `electron`), A2 (23 passed, 4 skipped), A3 (UNCHANGED), A4 (fuses OK, 1 wire) and A5 (RUNNING after 10s, no integrity line) pass. Sabrael's checks at the machine, on `dist/linux-unpacked/corvath`, pass: B1 with the deck art, and all of the old B4 on the eight themes. B4 is then retired (above). The splash test added with it brings A1 to 1195. The results are on the cards that each check names and on HTOO-230.
 
-The owed rows are a checklist on HTOO-230. There is no tag this round: `v1.0.0` waits for HTOO-232.
+Nothing is owed on either machine. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
 Done on Windows, and not on this page:
 
