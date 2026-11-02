@@ -51,6 +51,8 @@ npm run typecheck  # tsc for main + renderer
 npm run build:win  # package a Windows installer (electron-builder)
 ```
 
+An npm script that runs a script under Electron calls `node scripts/run-electron.mjs <script>`, not `electron <script>`. The launcher removes `ELECTRON_RUN_AS_NODE` before it starts Electron. Some shells export that variable, and then a bare `electron` runs as plain Node. Give the script its own guard for a direct `electron` run, and make the guard's message name the npm script (HTOO-612). Corvath has no such script yet.
+
 ## Remote Desktop
 
 Over RDP, Corvath drops to software rendering on its own. A remote session has no GPU, and Chromium's GPU compositing path is what makes window dragging lag and the app idle at about 10% CPU there. Corvath also turns off the panel blur of the six fantasy themes while software rendering is on, because that blur is expensive without a GPU. Nothing to set; Corvath reads the session type at launch.

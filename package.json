@@ -51,7 +51,7 @@
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
     "fflate": "^0.8.3",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "_overridesNote": [
     "brace-expansion carries two high-severity DoS advisories (GHSA-3jxr-9vmj-r5cp,",
@@ -117,8 +117,8 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/coverage-v8": "^4.1.11",
-    "electron": "^44.7.0",
+    "@vitest/coverage-v8": "^4.1.12",
+    "electron": "^44.10.0",
     "electron-builder": "^26.17.0",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.4",
@@ -130,8 +130,8 @@
     "react-dom": "^19.2.7",
     "react-icons": "^5.7.0",
     "typescript": "^5.7.0",
-    "vite": "^7.3.6",
-    "vitest": "^4.1.11",
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12",
     "zustand": "^5.0.14"
   },
   "//allowScripts": "npm 12 runs a dependency's install script only when this block approves it, and it skips the rest SILENTLY: a warning at the end of npm install or npm ci, exit 0 (HTOO-542). esbuild's postinstall selects its platform binary. electron-winstaller is denied: its script only selects a 7-Zip binary for Squirrel.Windows installers, and electron-builder.yml ships NSIS and portable only. fsevents is the macOS file watcher behind vite, rollup and Playwright; it is optional and installs on macOS only, so an npm ci on Windows or Linux never shows that it needs an approval. electron is absent: since Electron 42 it has no install script. The project's OWN postinstall runs install-electron instead (a no-op when the binary is there), because electron-vite dev reads the binary's path without require(), so a fresh clone could not run npm run dev ('Electron uninstall') without it (HTOO-553). Approvals are by name, never pkg@version: a pinned approval stops matching at the next bump. npm install-scripts ls reports anything new.",
