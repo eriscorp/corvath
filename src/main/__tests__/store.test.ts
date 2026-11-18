@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Deck } from '../../shared/types'
 import {
   backfillSeedFingerprints,
+  cleanSegment,
   createStores,
+  deckDirWithin,
   mergeSeedDeck,
   resolveWithin,
   safeSegment,
@@ -34,6 +36,31 @@ describe('safeSegment', () => {
     expect(safeSegment('../../etc/passwd')).toBe('....etcpasswd')
     expect(safeSegment('a/b\\c')).toBe('abc')
     expect(safeSegment('deck-1_v2.png')).toBe('deck-1_v2.png')
+  })
+})
+
+describe('cleanSegment', () => {
+  it('refuses a segment that cannot name a child', () => {
+    for (const v of ['', '.', '..', '...', '/', '\\', '../', '..\\', ' . ']) {
+      expect(cleanSegment(v)).toBeNull()
+    }
+  })
+  it('keeps an ordinary id or filename', () => {
+    expect(cleanSegment('maj-0.webp')).toBe('maj-0.webp')
+    expect(cleanSegment('6f1c2a7e-0b1d-4c59-9a3e-2f2b8c1d9e0a')).toBe(
+      '6f1c2a7e-0b1d-4c59-9a3e-2f2b8c1d9e0a'
+    )
+    expect(cleanSegment('.hidden')).toBe('.hidden')
+  })
+})
+
+describe('deckDirWithin', () => {
+  it('gives a direct child of the root, and null for the root or its parent', () => {
+    const root = resolve('/data/decks')
+    expect(deckDirWithin(root, 'thoth')).toBe(join(root, 'thoth'))
+    expect(deckDirWithin(root, '..')).toBeNull()
+    expect(deckDirWithin(root, '.')).toBeNull()
+    expect(deckDirWithin(root, '')).toBeNull()
   })
 })
 
@@ -407,6 +434,85 @@ describe('image cleanup', () => {
     const s = stores()
     await expect(s.deleteCardImage('nope', 'nope')).resolves.toBeUndefined()
     await expect(s.deleteDeckImages('nope')).resolves.toBeUndefined()
+  })
+})
+
+// HTOO-697. Every id that cannot name a child folder, on a real data folder:
+// the journal, the decks file and another deck's art must all survive.
+describe('image paths stay inside the deck folder (HTOO-697)', () => {
+  const UNSAFE_IDS = ['..', '.', '...', '', '/', '../..', '..\\..']
+  const exists = async (p: string): Promise<boolean> =>
+    fs.access(p).then(
+      () => true,
+      () => false
+    )
+
+  let marks: string[]
+  beforeEach(async () => {
+    marks = [
+      join(dir, 'readings.json'),
+      join(dir, 'decks.json'),
+      join(dir, 'decks.json.bak'),
+      join(dir, 'decks', 'other', 'maj-0.png'),
+      join(dir, 'decks', '.hidden')
+    ]
+    for (const p of marks) {
+      await fs.mkdir(join(p, '..'), { recursive: true })
+      await fs.writeFile(p, 'KEEP')
+    }
+  })
+  const allKept = async (): Promise<void> => {
+    for (const p of marks) expect(await fs.readFile(p, 'utf8')).toBe('KEEP')
+  }
+
+  it.each(UNSAFE_IDS)('deleteDeckImages(%j) deletes nothing', async (id) => {
+    await stores().deleteDeckImages(id)
+    await allKept()
+    expect(await exists(dir)).toBe(true)
+  })
+
+  it.each(UNSAFE_IDS)('deleteCardImage(%j, "decks") deletes nothing', async (id) => {
+    await stores().deleteCardImage(id, 'decks')
+    await allKept()
+  })
+
+  it('deleteCardImage with an empty card id does not match the dotfiles', async () => {
+    await stores().deleteCardImage('other', '')
+    await stores().deleteCardImage('other', '.')
+    await allKept()
+  })
+
+  it.each(UNSAFE_IDS)('saveCardImage(%j, "decks", "json") is refused', async (id) => {
+    await expect(stores().saveCardImage(id, 'decks', 'json', new Uint8Array([1]))).rejects.toThrow(
+      /outside the deck folder/
+    )
+    await allKept()
+  })
+
+  it('saveCardImage with a dot-only card id is refused', async () => {
+    await expect(stores().saveCardImage('other', '..', 'png', new Uint8Array([1]))).rejects.toThrow(
+      /outside the deck folder/
+    )
+    await allKept()
+  })
+
+  it.each(UNSAFE_IDS)('writeDeckImages(%j) is refused', async (id) => {
+    await expect(
+      stores().writeDeckImages(id, [{ filename: 'decks.json', data: new Uint8Array([1]) }])
+    ).rejects.toThrow(/outside the deck folder/)
+    await allKept()
+  })
+
+  it('a usable id still saves, deletes one card, and deletes its own folder', async () => {
+    const s = stores()
+    const name = await s.saveCardImage('mine', 'maj-1', 'png', new Uint8Array([1]))
+    expect(name).toBe('maj-1.png')
+    expect(await exists(join(dir, 'decks', 'mine', 'maj-1.png'))).toBe(true)
+    await s.deleteCardImage('mine', 'maj-1')
+    expect(await exists(join(dir, 'decks', 'mine', 'maj-1.png'))).toBe(false)
+    await s.deleteDeckImages('mine')
+    expect(await exists(join(dir, 'decks', 'mine'))).toBe(false)
+    await allKept()
   })
 })
 

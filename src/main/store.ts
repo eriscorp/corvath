@@ -1,8 +1,9 @@
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
-import { join, resolve, sep } from 'path'
+import { dirname, join, resolve, sep } from 'path'
 import type { Deck, DeckCard, Layout, Reading, Settings } from '../shared/types'
 import { createJsonStore } from './jsonStore'
+import { cleanSegment, safeSegment } from './segments'
 import { buildSeedDecks } from './seedDecks'
 import { buildSeedLayouts } from './seedLayouts'
 import { decksSchema, layoutsSchema, readingsSchema, settingsSchema } from './schemas'
@@ -34,24 +35,37 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object'
 }
 
-/** Keep only filesystem-safe characters so renderer-supplied ids can't escape the data dir. */
-export function safeSegment(value: string): string {
-  return value.replace(/[^a-zA-Z0-9._-]/g, '')
+export { safeSegment, cleanSegment }
+
+/**
+ * `<root>/<deckId>` when it is a direct child folder of `root`, else null.
+ *
+ * Every store function that touches a deck's image folder gets the folder
+ * here (HTOO-697). `cleanSegment` refuses `.`, `..`, empty and dot-only ids,
+ * so the folder is never `root` itself or its parent.
+ */
+export function deckDirWithin(root: string, deckId: string): string | null {
+  const seg = cleanSegment(deckId)
+  if (seg === null) return null
+  const base = resolve(root)
+  const target = resolve(base, seg)
+  return dirname(target) === base ? target : null
 }
 
 /**
  * Resolve `<root>/<deckId>/<filename>` and confirm the result stays strictly
- * inside `root`, returning null if it escapes. Both segments are
- * `safeSegment`-cleaned first, but that alone is not enough: `safeSegment`
- * preserves dots, so a segment like `..` survives and `resolve` could land on a
- * sibling that merely shares the root as a string prefix (e.g. root `.../decks`,
- * target `.../decks.json`). Comparing against `resolve(root) + sep` requires the
- * target to be a real child of the directory, closing that hole.
+ * inside the deck's folder, returning null if it escapes. Both segments go
+ * through `cleanSegment`, which refuses `.`, `..`, empty and dot-only names.
+ * The final check against `<deckDir> + sep` is a second guard: it requires the
+ * target to be a real child of the folder, not a sibling that only shares the
+ * folder as a string prefix (root `.../decks`, target `.../decks.json`).
  */
 export function resolveWithin(root: string, deckId: string, filename: string): string | null {
-  const base = resolve(root)
-  const target = resolve(base, safeSegment(deckId), safeSegment(filename))
-  return target.startsWith(base + sep) ? target : null
+  const deckDir = deckDirWithin(root, deckId)
+  const file = cleanSegment(filename)
+  if (deckDir === null || file === null) return null
+  const target = resolve(deckDir, file)
+  return target.startsWith(deckDir + sep) ? target : null
 }
 
 const minorKey = (suit: string, rank: string): string => `${suit}|${rank}`
@@ -356,7 +370,11 @@ export function createStores(dir: string, bundledDecksDir: string): Stores {
     }
   })
 
-  /** Delete every file for a card id in a deck dir (bare name or any extension). */
+  /**
+   * Delete every file for a card id in a deck dir (bare name or any extension).
+   * `safeCard` must come from `cleanSegment`: an empty id would match every
+   * dotfile in the folder.
+   */
   async function unlinkCardFiles(deckDir: string, safeCard: string): Promise<void> {
     try {
       const existing = await fs.readdir(deckDir)
@@ -376,10 +394,12 @@ export function createStores(dir: string, bundledDecksDir: string): Stores {
     ext: string,
     data: Uint8Array
   ): Promise<string> {
-    const safeDeck = safeSegment(deckId)
-    const safeCard = safeSegment(cardId)
+    const deckDir = deckDirWithin(imagesRoot, deckId)
+    const safeCard = cleanSegment(cardId)
+    if (deckDir === null || safeCard === null) {
+      throw new Error('Refused an image path outside the deck folder.')
+    }
     const safeExt = safeSegment(ext).replace(/^\.+/, '').toLowerCase() || 'png'
-    const deckDir = join(imagesRoot, safeDeck)
     await fs.mkdir(deckDir, { recursive: true })
 
     // Remove any prior image for this card (any extension/version) so we never
@@ -391,13 +411,18 @@ export function createStores(dir: string, bundledDecksDir: string): Stores {
     return filename
   }
 
+  // The two deletes do nothing for a refused id: no file of a refused id can be
+  // inside a deck folder, and the renderer treats a delete as fire-and-forget.
   async function deleteCardImage(deckId: string, cardId: string): Promise<void> {
-    const deckDir = join(imagesRoot, safeSegment(deckId))
-    await unlinkCardFiles(deckDir, safeSegment(cardId))
+    const deckDir = deckDirWithin(imagesRoot, deckId)
+    const safeCard = cleanSegment(cardId)
+    if (deckDir === null || safeCard === null) return
+    await unlinkCardFiles(deckDir, safeCard)
   }
 
   async function deleteDeckImages(deckId: string): Promise<void> {
-    const deckDir = join(imagesRoot, safeSegment(deckId))
+    const deckDir = deckDirWithin(imagesRoot, deckId)
+    if (deckDir === null) return
     await fs.rm(deckDir, { recursive: true, force: true }).catch(() => {})
   }
 
@@ -438,7 +463,9 @@ export function createStores(dir: string, bundledDecksDir: string): Stores {
     deckId: string,
     files: { filename: string; data: Uint8Array }[]
   ): Promise<void> {
-    await fs.mkdir(join(imagesRoot, safeSegment(deckId)), { recursive: true })
+    const deckDir = deckDirWithin(imagesRoot, deckId)
+    if (deckDir === null) throw new Error('Refused an image path outside the deck folder.')
+    await fs.mkdir(deckDir, { recursive: true })
     for (const { filename, data } of files) {
       // resolveWithin re-cleans both segments and rejects anything (e.g. '..')
       // that would escape the deck's folder.

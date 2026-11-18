@@ -38,6 +38,8 @@ import {
   copyReportArgsSchema,
   decksSchema,
   deckSchema,
+  deleteDeckImagesArgsSchema,
+  deleteImageArgsSchema,
   layoutsSchema,
   openIssueArgsSchema,
   readingsSchema,
@@ -132,11 +134,19 @@ export async function saveImage(
   return { filename: await ctx.store.saveCardImage(args.deckId, args.cardId, args.ext, args.data) }
 }
 
-export const deleteImage = (ctx: HandlerContext, deckId: string, cardId: string): Promise<void> =>
-  ctx.store.deleteCardImage(deckId, cardId)
+export async function deleteImage(
+  ctx: HandlerContext,
+  deckId: unknown,
+  cardId: unknown
+): Promise<void> {
+  const args = deleteImageArgsSchema.parse({ deckId, cardId })
+  return ctx.store.deleteCardImage(args.deckId, args.cardId)
+}
 
-export const deleteDeckImages = (ctx: HandlerContext, deckId: string): Promise<void> =>
-  ctx.store.deleteDeckImages(deckId)
+export async function deleteDeckImages(ctx: HandlerContext, deckId: unknown): Promise<void> {
+  const args = deleteDeckImagesArgsSchema.parse({ deckId })
+  return ctx.store.deleteDeckImages(args.deckId)
+}
 
 /** Prompt for a destination and write the deck (+ its images) as a `.corvathdeck` zip. */
 export async function exportDeck(
