@@ -1,19 +1,30 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { readFile } from 'fs/promises'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Reading } from '../../shared/types'
 import { createStores } from '../store'
+import { DECK_LIMITS, packDeck } from '../deckPackage'
+import type { PickerDialog } from '../pickerStart'
 import {
   deleteDeckImages,
   deleteImage,
   getReadings,
+  importDeck,
   saveDecks,
   saveImage,
   saveReadings,
   saveSettings
 } from '../handlers'
 import type { HandlerContext } from '../handlers'
+
+// A spy on the readFile that handlers.ts imports, so a test can prove that the
+// deck import refuses a file on its size before it reads it (HTOO-693).
+vi.mock('fs/promises', async (importOriginal) => {
+  const orig = await importOriginal<typeof import('fs/promises')>()
+  return { ...orig, readFile: vi.fn(orig.readFile) }
+})
 
 let dir: string
 let bundled: string
@@ -72,6 +83,46 @@ describe('handlers — invalid payloads reject without touching disk', () => {
   it('saveSettings rejects an unknown theme', async () => {
     await expect(saveSettings(ctx, { theme: 'neon' })).rejects.toBeInstanceOf(Error)
     await expect(fs.access(join(dir, 'settings.json'))).rejects.toBeTruthy()
+  })
+})
+
+// HTOO-693: the import checks the file size before it reads the file.
+describe('handlers — importDeck limits', () => {
+  const dialogFor = (path: string): PickerDialog =>
+    ({
+      showOpenDialog: async () => ({ canceled: false, filePaths: [path] }),
+      showSaveDialog: async () => ({ canceled: true })
+    }) as unknown as PickerDialog
+
+  it('refuses a file above the size limit and writes no image', async () => {
+    const deck = {
+      id: 'src',
+      name: 'Big',
+      suits: [],
+      pipRanks: [],
+      courtRanks: [],
+      supportsReversed: false,
+      cards: [],
+      createdAt: 'a',
+      updatedAt: 'b'
+    }
+    const path = join(dir, 'big.corvathdeck')
+    await fs.writeFile(path, packDeck(deck, [{ filename: 'a.webp', data: new Uint8Array(500) }]))
+    const size = (await fs.stat(path)).size
+
+    const refused = await importDeck(ctx, dialogFor(path), null, [], {
+      ...DECK_LIMITS,
+      maxFileBytes: size - 1
+    })
+    expect(refused).toEqual({ error: expect.stringMatching(/above the limit/) })
+    expect(vi.mocked(readFile)).not.toHaveBeenCalledWith(path)
+    await expect(fs.access(join(dir, 'decks'))).rejects.toBeTruthy()
+
+    const ok = await importDeck(ctx, dialogFor(path), null, [], {
+      ...DECK_LIMITS,
+      maxFileBytes: size
+    })
+    expect(ok).toEqual({ deck: expect.objectContaining({ name: 'Big' }) })
   })
 })
 

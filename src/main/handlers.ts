@@ -7,7 +7,7 @@
  * their payload with a zod schema first — an invalid payload throws, which
  * rejects the `invoke` before anything touches disk.
  */
-import { readFile, writeFile } from 'fs/promises'
+import { readFile, stat, writeFile } from 'fs/promises'
 import { z } from 'zod'
 import type {
   IpcMain,
@@ -47,7 +47,15 @@ import {
   saveImageArgsSchema,
   settingsSchema
 } from './schemas'
-import { CORVATHDECK_EXT, packDeck, unpackDeck, uniqueDeckName } from './deckPackage'
+import {
+  CORVATHDECK_EXT,
+  DECK_LIMITS,
+  type DeckLimits,
+  deckFileSizeViolation,
+  packDeck,
+  unpackDeck,
+  uniqueDeckName
+} from './deckPackage'
 
 const DECK_FILTERS = [{ name: 'Corvath Deck', extensions: [CORVATHDECK_EXT] }]
 const JSON_FILTERS = [{ name: 'JSON', extensions: ['json'] }]
@@ -202,12 +210,16 @@ export async function exportReadings(
   }
 }
 
-/** Prompt for a `.corvathdeck`, then import it as a fresh user deck (new id + unique name). */
+/**
+ * Prompt for a `.corvathdeck`, then import it as a fresh user deck (new id +
+ * unique name). `limits` is for the tests; the app passes none.
+ */
 export async function importDeck(
   ctx: HandlerContext,
   dialog: PickerDialog,
   win: BrowserWindowType | null,
-  existingNames: unknown
+  existingNames: unknown,
+  limits: DeckLimits = DECK_LIMITS
 ): Promise<DeckImportResult> {
   const taken = z.array(z.string()).parse(existingNames)
   const opts: OpenDialogOptions = { properties: ['openFile'], filters: DECK_FILTERS }
@@ -215,8 +227,11 @@ export async function importDeck(
   if (canceled || !filePaths[0]) return { canceled: true }
 
   try {
+    // The size first: the read below allocates the whole file (HTOO-693).
+    const sizeRefusal = deckFileSizeViolation((await stat(filePaths[0])).size, limits)
+    if (sizeRefusal) return { error: sizeRefusal }
     const bytes = await readFile(filePaths[0])
-    const pkg = unpackDeck(new Uint8Array(bytes))
+    const pkg = unpackDeck(new Uint8Array(bytes), limits)
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
     // Imported copies are plain user decks: new id, unique name, and no built-in
