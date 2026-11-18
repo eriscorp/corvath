@@ -4,6 +4,7 @@
 >
 > - Phase 2's acceptance names `%APPDATA%\Themisco\Corvath`. That path never existed. The app writes to `%LOCALAPPDATA%\Erisco\Corvath` — a local dir, not roaming, under the Erisco vendor name settled in the 1.0 branding pass.
 > - The "out of scope, do not do" list at the top is now largely DONE and must not be read as current policy: the appId change, the CI release pipeline, `.corvathdeck` export/import, and the mac/linux targets have all since shipped. Only the Game-Icons title bar is still deferred — it lives in [00a-backlog.md](../00a-backlog.md) now.
+> - Phase 4 says to keep the `window.electron` exposure. That no longer holds: HTOO-697 (2026-11-18, #11) removed the toolkit bridge, because nothing read it and it gave the renderer raw `ipcRenderer` and `process.env`. The preload exposes only `api`.
 
 Handoff plan from the 2026-07-09 full review (template comparison, architecture-doc compliance, bug hunt, theme parity). Work through the phases in order — each phase is independently shippable and leaves the app green (`npm run typecheck`, and once Phase 0 lands, `lint:check` + `test`).
 
