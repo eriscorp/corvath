@@ -10,8 +10,10 @@ export default defineConfig({
   },
   // Match the app build (@vitejs/plugin-react), which uses the automatic JSX
   // runtime — component files render JSX without importing React, and their
-  // tests should not have to either.
-  esbuild: { jsx: 'automatic' },
+  // tests should not have to either. vite 8 transforms with oxc and ignores an
+  // `esbuild` option; without this line every .tsx test fails to parse
+  // (HTOO-694).
+  oxc: { jsx: { runtime: 'automatic' } },
   test: {
     // Required for @testing-library/react's automatic per-test cleanup, which
     // registers itself on a global afterEach.

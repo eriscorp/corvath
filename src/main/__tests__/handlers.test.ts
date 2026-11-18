@@ -1,11 +1,30 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { readFile } from 'fs/promises'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Reading } from '../../shared/types'
 import { createStores } from '../store'
-import { getReadings, saveDecks, saveReadings, saveSettings } from '../handlers'
+import { DECK_LIMITS, packDeck } from '../deckPackage'
+import type { PickerDialog } from '../pickerStart'
+import {
+  deleteDeckImages,
+  deleteImage,
+  getReadings,
+  importDeck,
+  saveDecks,
+  saveImage,
+  saveReadings,
+  saveSettings
+} from '../handlers'
 import type { HandlerContext } from '../handlers'
+
+// A spy on the readFile that handlers.ts imports, so a test can prove that the
+// deck import refuses a file on its size before it reads it (HTOO-693).
+vi.mock('fs/promises', async (importOriginal) => {
+  const orig = await importOriginal<typeof import('fs/promises')>()
+  return { ...orig, readFile: vi.fn(orig.readFile) }
+})
 
 let dir: string
 let bundled: string
@@ -64,5 +83,74 @@ describe('handlers — invalid payloads reject without touching disk', () => {
   it('saveSettings rejects an unknown theme', async () => {
     await expect(saveSettings(ctx, { theme: 'neon' })).rejects.toBeInstanceOf(Error)
     await expect(fs.access(join(dir, 'settings.json'))).rejects.toBeTruthy()
+  })
+})
+
+// HTOO-693: the import checks the file size before it reads the file.
+describe('handlers — importDeck limits', () => {
+  const dialogFor = (path: string): PickerDialog =>
+    ({
+      showOpenDialog: async () => ({ canceled: false, filePaths: [path] }),
+      showSaveDialog: async () => ({ canceled: true })
+    }) as unknown as PickerDialog
+
+  it('refuses a file above the size limit and writes no image', async () => {
+    const deck = {
+      id: 'src',
+      name: 'Big',
+      suits: [],
+      pipRanks: [],
+      courtRanks: [],
+      supportsReversed: false,
+      cards: [],
+      createdAt: 'a',
+      updatedAt: 'b'
+    }
+    const path = join(dir, 'big.corvathdeck')
+    await fs.writeFile(path, packDeck(deck, [{ filename: 'a.webp', data: new Uint8Array(500) }]))
+    const size = (await fs.stat(path)).size
+
+    const refused = await importDeck(ctx, dialogFor(path), null, [], {
+      ...DECK_LIMITS,
+      maxFileBytes: size - 1
+    })
+    expect(refused).toEqual({ error: expect.stringMatching(/above the limit/) })
+    expect(vi.mocked(readFile)).not.toHaveBeenCalledWith(path)
+    await expect(fs.access(join(dir, 'decks'))).rejects.toBeTruthy()
+
+    const ok = await importDeck(ctx, dialogFor(path), null, [], {
+      ...DECK_LIMITS,
+      maxFileBytes: size
+    })
+    expect(ok).toEqual({ deck: expect.objectContaining({ name: 'Big' }) })
+  })
+})
+
+// HTOO-697: the image channels parse their ids, so `..` never reaches the store.
+describe('handlers — image ids', () => {
+  const png = new Uint8Array([1])
+
+  it.each(['..', '.', '', 7, undefined])('deleteDeckImages rejects %j', async (id) => {
+    await saveReadings(ctx, [reading()])
+    await expect(deleteDeckImages(ctx, id)).rejects.toBeInstanceOf(Error)
+    expect(await fileContents('readings.json')).toContain('"id"')
+  })
+
+  it.each(['..', '.', '', 7])('deleteImage rejects a deck id of %j', async (id) => {
+    await expect(deleteImage(ctx, id, 'decks')).rejects.toBeInstanceOf(Error)
+  })
+
+  it('saveImage rejects a deck id of ..', async () => {
+    await expect(saveImage(ctx, '..', 'decks', 'json', png)).rejects.toBeInstanceOf(Error)
+    await expect(fs.access(join(dir, 'decks.json'))).rejects.toBeTruthy()
+  })
+
+  it('a usable id saves and deletes', async () => {
+    expect(await saveImage(ctx, 'deck-1', 'maj-0', 'png', png)).toEqual({
+      filename: 'maj-0.png'
+    })
+    await deleteImage(ctx, 'deck-1', 'maj-0')
+    await deleteDeckImages(ctx, 'deck-1')
+    await expect(fs.access(join(dir, 'decks', 'deck-1'))).rejects.toBeTruthy()
   })
 })

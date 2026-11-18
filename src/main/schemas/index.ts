@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Deck, Layout, Reading, Settings } from '../../shared/types'
+import { cleanSegment } from '../segments'
 
 // Runtime schemas mirroring shared/types.ts. Used two ways:
 //  - at every mutating IPC handler, to reject malformed renderer payloads
@@ -132,14 +133,27 @@ export const deckSchema: z.ZodType<Deck> = z.object({
 
 export const decksSchema = z.array(deckSchema)
 
+// A deck id or card id that names an image folder or file (HTOO-697). Refused
+// here at the IPC boundary when it cannot name a child: `.`, `..`, empty or
+// dot-only. The store refuses the same ids again, because decks.json is also a
+// source of ids. Not used in `deckSchema`: that schema also loads decks.json,
+// and one refused id there would reset the whole file.
+const imageIdSchema = z
+  .string()
+  .max(200)
+  .refine((v) => cleanSegment(v) !== null, 'Not a usable deck or card id.')
+
 // Arguments to decks:saveImage. `data` arrives as a Uint8Array over IPC
-// (structured clone). ext/deckId/cardId are further sanitized in the store.
+// (structured clone). The store cleans ext, deckId and cardId again.
 export const saveImageArgsSchema = z.object({
-  deckId: z.string(),
-  cardId: z.string(),
-  ext: z.string(),
+  deckId: imageIdSchema,
+  cardId: imageIdSchema,
+  ext: z.string().max(20),
   data: z.instanceof(Uint8Array)
 })
+
+export const deleteImageArgsSchema = z.object({ deckId: imageIdSchema, cardId: imageIdSchema })
+export const deleteDeckImagesArgsSchema = z.object({ deckId: imageIdSchema })
 
 // Report Issue module payloads. Parsed like every other mutating payload — the
 // guardIpc proxy answers "who sent this", these answer "is it the right shape".
