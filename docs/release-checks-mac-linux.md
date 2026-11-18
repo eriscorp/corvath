@@ -55,9 +55,9 @@ npm run validate && npm run build && grep -o 'require("[^"]*")' out/preload/inde
 
 Every step must pass. The `grep` must print `require("electron")` only. The preload is sandboxed, and a sandboxed preload can load only `electron` (HTOO-54). Report the test count.
 
-The suite is 1198 passed and 0 skipped (2026-11-02, after the splash and window-button tests). No unit test in Corvath depends on the OS, so expect the same count on each machine. Report the exact numbers, and name any test that fails or skips.
+The suite is 1303 passed and 0 skipped (2026-11-18, with the November round tests). No unit test in Corvath depends on the OS, so expect the same count on each machine. Report the exact numbers, and name any test that fails or skips.
 
-### A2 and A3. e2e on Electron 44, and the real data stays the same (both OS) — HTOO-553, HTOO-543
+### A2 and A3. e2e on Electron 45, and the real data stays the same (both OS) — HTOO-553, HTOO-543
 
 A2 runs the e2e suite (HTOO-553). A3 proves that the suite does not touch the real data folder (HTOO-543): the e2e helper redirects `LOCALAPPDATA` to a temp folder, main reads `LOCALAPPDATA` on every platform, and `assertIsolated` fails a launch whose `userData` is not under the temp folder. One e2e run serves both, and it rebuilds the app first, so do not run it twice.
 
@@ -175,29 +175,28 @@ Sabrael retired the Linux chrome checks on 2026-11-02, after they passed in the 
 
 The window-corner note was an observation, not a check, and goes with them.
 
-## For this round (2026-11-01)
+## For this round (2026-11-18)
 
 Write this section again for each round: what applies, and what is already done.
 
-All of A1 to A5 and B1 to B4 applied. The November 2026 release changed what each check covers:
+The November round branch, `chore/november-round`, changes what A1 to A5 and B1 cover:
 
-- **Electron 44.10.0** (HTOO-607), from 44.7.0. A1 to A5 and B1 ran again on the new runtime: the gate, e2e, the real data folder, the fuses and the asar check.
-- **Eight themes**, with Shattered and Untamed (HTOO-572, the template at `58fa416`). B2 and the old B4.4 covered each of the eight.
-- **The nav bar** (HTOO-629). The page tabs became the house nav bar on `tertiary.main`. B2.4 and the old B4.4 checked it.
+- **Electron 45.3.4** (HTOO-694), from 44.10.0, with vite 8, electron-vite 6, `@vitejs/plugin-react` 6, Vitest 5 and jsdom 31. A1 to A5 and B1 run again on the new runtime.
+- **The preload exposes only `api`** (HTOO-697). The `window.electron` toolkit bridge is gone, and `e2e/helpers.js` finds the main window by `window.api`. A1's `grep` still prints `require("electron")` only, and A2 proves the helper on each machine.
+- **The release workflow pins every action to a SHA** (HTOO-692). The signing steps and the macOS notarization run only on a tag, so this page cannot check them.
+- **The portable check and the deck import limits** (HTOO-667, HTOO-693) are Windows-only and in the unit tests. Nothing on this page changes for them.
 
-**Done on the Mac** (macOS 27.0.1, Apple Silicon, `7c3f3ba`, 2026-11-02): A1 (1192 passed), A2 (27 passed), A3, A4, A5 and B1 to B3 pass, and nothing failed. B2 covered the eight themes and the nav bar. The results are on the cards that each check names, on HTOO-230, and in Corvath's row of `macos-chrome.md` §10.
+Owed on each machine (Sabrael runs these at the end of the release): A1 (1303 passed), A2 (23 passed and 4 skipped on Linux, 27 passed on macOS), A3, A4, A5 and B1. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
-**Done on Linux** (Linux Mint 22.3, `b878577`, 2026-11-02): A1 (1192 passed; the preload requires only `electron`), A2 (23 passed, 4 skipped), A3 (UNCHANGED), A4 (fuses OK, 1 wire) and A5 (RUNNING after 10s, no integrity line) pass. Sabrael's checks at the machine, on `dist/linux-unpacked/corvath`, pass: B1 with the deck art, and all of the old B4 on the eight themes. B4 is then retired (above). The splash and window-button tests added with it bring A1 to 1198. The results are on the cards that each check names and on HTOO-230.
+Done on Windows (2026-11-18, the branch tip), and not on this page:
 
-Nothing is owed on either machine. There is no tag this round: `v1.0.0` waits for HTOO-232.
-
-Done on Windows, and not on this page:
-
-- **The theme check** of the eight themes, the nav bar, the disabled buttons and the grey list icons (HTOO-572, HTOO-629, HTOO-639). Sabrael checked it by eye on 2026-11-01.
-- **The gate and e2e on Electron 44.10.0.** `npm run validate`: 1192 passed. `npm run e2e`: 23 passed, 4 skipped (the macOS menu).
+- **The gate:** `npm run validate`, 1303 passed. The build's preload requires only `electron`. Main keeps `@electron-toolkit/utils`, `fflate`, `zod` and `original-fs` external.
+- **e2e:** `npm run e2e`, 23 passed, 4 skipped (the macOS menu).
+- **A packaged `--win --dir` build:** the fuses verify, `app.asar` holds only `@electron-toolkit/utils`, `fflate` and `zod`, and the exe ran 40 s with its window, with another app's three portable variables set. Its session log had no portable line and no error.
+- **The audit:** `npm audit` 21 (5 moderate, 16 high), against 21 (11 moderate, 10 high) on `main` that day; `--omit=dev` 0. Each finding is the picomatch advisory GHSA-fc5q-39xc-vjpf, which has no fix, or the minimatch advisory under electron-builder (HTOO-631).
 
 Not on this page:
 
 - **The Dock check** (`macos-chrome.md` §6). Corvath runs no git, so the launch-env modules do not apply.
 - **Signing.** The Windows signing and the macOS notarization run only in the release workflow, on a tag.
-- **The October round** (2026-10-11 and 2026-10-12) passed on both machines with nothing owed. Its results are on the cards that each check names, on HTOO-63, and in Corvath's row of `macos-chrome.md` §10.
+- **The November pre-release round** (2026-11-01, Electron 44.10.0) passed on both machines with nothing owed. Its results are on the cards that each check names and on HTOO-230.

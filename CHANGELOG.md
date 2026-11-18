@@ -67,7 +67,7 @@ This is the first release. Corvath is a desktop tarot companion. It draws readin
 ### Changed
 
 - **A smaller download and a faster splash screen.** Corvath no longer ships its interface libraries two times. It also no longer decodes a 2.3 MB image to draw an 84-pixel logo. The packaged archive now holds about 950 files, down from about 38,700. The images in it total 266 KB, down from 4.7 MB.
-- **Corvath now runs on Electron 44.** It needs macOS 13 or later and a 64-bit system.
+- **Corvath now runs on Electron 45.** It needs macOS 13 or later and a 64-bit system.
 - **Danaan and Grinneal have a dark title bar.** The bar is bronze on Danaan and brown on Grinneal. Its text is light, with a black outline, as on Hybrasyl and Chadul.
 - **The title bar has new window buttons.** On Hybrasyl, Chadul, Danaan, Grinneal, Shattered and Untamed, the minimise, maximise and close buttons are game glyphs, with the same outline as the bar text. Mundanes and Dubhaimid keep plain icons. The maximise button shows one glyph, also when the window is maximised. A click on it still restores the window. Under the pointer, the close button turns red.
 - **The pages are on a nav bar.** The row of tabs under the title bar is now a second bar, in a colour of its own in each theme. Each page has a button with its name. A ring marks the current page.
@@ -92,7 +92,11 @@ This is the first release. Corvath is a desktop tarot companion. It draws readin
 
 ### Security
 
-- **Corvath runs on Electron 44.10.0.** It includes Node 24.22.1, a Node security release with fixes in HTTP, DNS, TLS and crypto, and a newer Chromium.
+- **Corvath runs on Electron 45.3.4.** It includes a Node security release with fixes in HTTP, DNS, TLS and crypto, and a newer Chromium.
+- **A deck file cannot make Corvath use all of your memory.** Before, Corvath read a whole `.corvathdeck` file and unpacked every entry, with no limit. A small file from another person could hold an entry that unpacks to gigabytes. Corvath now checks the size of the file, the number of entries, and the size of each entry before it unpacks one. A deck file above a limit is refused with a message, and nothing is imported. Each limit is far above a real deck.
+- **A damaged deck list cannot delete your data folder.** A deck id of `..` in the deck list made Corvath delete the whole Corvath data folder, with your journal, when you deleted that deck or its art. Corvath now refuses a deck id or card id that names a folder above the deck's own art folder.
+- **The interface gets only the requests that Corvath uses.** Corvath gave its interface a general bridge to the privileged side that nothing used. That bridge could send any request and read the environment of the program. Corvath now gives the interface only its own named requests.
+- **Corvath trusts only its own portable launcher.** A program that another portable app started took itself for a portable start of Corvath, and ran the temp-folder cleanup. Corvath now checks that the launcher is its own. It also removes the launcher's variables before it opens your file manager or browser, so those programs do not get them.
 - **Corvath refuses to move its window away from its own pages.** It opens a link in your browser only when the link is an ordinary web or mail link. It refuses every other kind of link: a local file path, a network share, a script URL, or a custom scheme that another program on your machine registers.
 - **The interface runs in a sandbox.** Corvath checks every request that the interface makes to its privileged side. The check confirms that the request comes from a real Corvath window that shows the content of Corvath.
 - **Corvath switches off the debug controls in the Electron runtime that it ships.** Nobody can therefore use the bundled binary to run other code through environment variables or command-line flags.
