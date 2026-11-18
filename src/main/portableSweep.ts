@@ -55,6 +55,53 @@
 
 import { basename, dirname, join } from 'path'
 
+/** The three variables the NSIS portable stub sets for the app it starts. */
+export const PORTABLE_ENV_KEYS = [
+  'PORTABLE_EXECUTABLE_DIR',
+  'PORTABLE_EXECUTABLE_FILE',
+  'PORTABLE_EXECUTABLE_APP_FILENAME'
+] as const
+
+/**
+ * True when the portable stub of THIS app started this process (HTOO-667).
+ *
+ * A child process inherits the variables, so `PORTABLE_EXECUTABLE_DIR` alone
+ * also says "portable" in an app that another app's portable exe started (for
+ * example VS Code from Balor's exe, then an app from a VS Code terminal). The
+ * stub writes electron-builder's `APP_FILENAME` into
+ * `PORTABLE_EXECUTABLE_APP_FILENAME`. For a portable target that is the
+ * sanitized package.json `name`, not `win.executableName`. For corvath both are
+ * `corvath`, but the package name is the one the stub writes, so compare with
+ * it. Windows names fold case, so the compare folds case too.
+ */
+export function isOwnPortableLaunch(
+  env: Readonly<Record<string, string | undefined>>,
+  packageName: string
+): boolean {
+  const appFilename = env['PORTABLE_EXECUTABLE_APP_FILENAME']
+  return (
+    Boolean(env['PORTABLE_EXECUTABLE_DIR']) &&
+    typeof appFilename === 'string' &&
+    appFilename.toLowerCase() === packageName.toLowerCase()
+  )
+}
+
+/**
+ * Read the portable launch, then remove the three variables from `env`, so
+ * that no process this app starts inherits them (HTOO-667). Call it once, at
+ * the start of main, before anything starts a child process. Corvath starts
+ * no child itself, but `shell.openPath` and `shell.openExternal` start the
+ * file manager and the browser, and they inherit main's environment.
+ */
+export function takePortableLaunch(
+  env: Record<string, string | undefined>,
+  packageName: string
+): boolean {
+  const own = isOwnPortableLaunch(env, packageName)
+  for (const key of PORTABLE_ENV_KEYS) delete env[key]
+  return own
+}
+
 /**
  * The file operations the sweep uses. Electron's `original-fs` promises API and
  * Node's `fs.promises` both fit, which is what lets a test drive it.
@@ -87,7 +134,7 @@ const SWEEP_SUFFIX = '.corvath-sweep'
 export interface SweepOptions {
   /** `process.execPath`: `<TEMP>\nsXXXX.tmp\app\corvath.exe` in a portable run. */
   execPath: string
-  /** True when the NSIS stub launched us. It sets `PORTABLE_EXECUTABLE_DIR`. */
+  /** True when this app's own NSIS stub launched us. See `takePortableLaunch`. */
   isPortable: boolean
   now?: number
   /** `original-fs` in Electron (see above). Required: no default is safe. */

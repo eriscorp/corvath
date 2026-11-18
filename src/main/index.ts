@@ -25,7 +25,8 @@ import { installGlobalErrorHandlers } from './errorHandlers'
 import { buildDiagnostics, copyReport, openIssue, type DiagnosticsIo } from './diagnostics'
 import { pickerDialog, withPickerStart } from './pickerStart'
 import { shouldDisableHardwareAcceleration, REMOTE_SESSION_CSS } from './remoteSession'
-import { sweepPortableLeftovers } from './portableSweep'
+import { sweepPortableLeftovers, takePortableLaunch } from './portableSweep'
+import { name as PACKAGE_NAME } from '../../package.json'
 import { buildMenuTemplate } from './appMenu'
 import { appIdentity } from '../shared/appIdentity'
 import {
@@ -55,6 +56,13 @@ import {
 // wrote it. Corvath has no roaming migration to guard.
 /** How long after boot the portable sweep waits (portableSweep.ts). */
 const PORTABLE_SWEEP_DELAY_MS = 30_000
+
+// First, before anything can start a child process: read whether THIS app's
+// portable stub started us, then remove the stub's variables from our own
+// environment, so that the file manager, the browser and any other process we
+// start do not inherit them (HTOO-667). `bootOrder.test.ts` asserts that this
+// stays the first statement that reads `process.env`.
+const isOwnPortable = takePortableLaunch(process.env, PACKAGE_NAME)
 
 const COMPANY = 'Erisco'
 const APP_DIR = 'Corvath'
@@ -492,7 +500,7 @@ app.whenReady().then(async () => {
       // holds it, so every rename is refused.
       fs: originalFs.promises,
       execPath: process.execPath,
-      isPortable: app.isPackaged && Boolean(process.env['PORTABLE_EXECUTABLE_DIR']),
+      isPortable: app.isPackaged && isOwnPortable,
       onError: (message) => captureError({ source: 'portable-sweep', message })
     })
   }, PORTABLE_SWEEP_DELAY_MS).unref()
