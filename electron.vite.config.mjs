@@ -12,12 +12,12 @@ export default defineConfig(({ command }) => ({
   },
   preload: {
     // A SANDBOXED preload (webPreferences.sandbox: true) may only `require`
-    // electron itself — it has no node module resolution. externalizeDepsPlugin
-    // otherwise leaves `require("@electron-toolkit/preload")` in the output, which
-    // then throws at load and takes the whole bridge with it. Excluding it from
-    // externalization bundles it in, so `require("electron")` is all that remains.
-    // This is the real blocker behind the usual "our preload needs node" claim.
-    plugins: [externalizeDepsPlugin({ exclude: ['@electron-toolkit/preload'] })]
+    // electron itself — it has no node module resolution. The preload imports
+    // only `electron`, so externalizing every dependency leaves
+    // `require("electron")` as the one require. A new package import here
+    // would be left as a `require` that throws at load and takes the whole
+    // bridge with it; the A1 release check greps the built file for this.
+    plugins: [externalizeDepsPlugin()]
   },
   renderer: {
     // './' is required for file:// in production; '/' is required for HMR in dev

@@ -258,12 +258,10 @@ function createWindow(): void {
     title: 'Corvath',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      // Checked, not assumed. The preload uses no node built-ins, but that alone
-      // does NOT make it sandbox-safe: externalizeDepsPlugin was leaving
-      // `require("@electron-toolkit/preload")` in the built output, and a
-      // sandboxed preload can only require electron. The vite preload config now
-      // bundles that package instead of externalizing it, so `require("electron")`
-      // is all that remains — verified against out/preload/index.js.
+      // Checked, not assumed. A sandboxed preload can only require electron, and
+      // the preload imports nothing else: the @electron-toolkit/preload import
+      // left with the `window.electron` bridge (HTOO-697), so
+      // `require("electron")` is the only require in out/preload/index.js.
       sandbox: true
     }
   })

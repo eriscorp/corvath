@@ -78,18 +78,15 @@ export async function assertIsolated(electronApp, localAppData) {
 
 // Find the real main window and wait until it's actually shown. The app pops a
 // splash window first, so `firstWindow()` can return the wrong one. The splash
-// has NO preload, so we identify the main window by the presence of a preload
-// bridge: `window.electron` (the @electron-toolkit bridge, exposed by every
-// sibling's preload) — bridge-name-independent, so this needs no per-app tweak.
-// `bridge` is an extra app-global to also accept (default 'api'); override it
-// only if your app both renames window.api AND drops the toolkit bridge.
+// has NO preload, so we identify the main window by the presence of the preload
+// bridge, `window.api`. Corvath dropped the `window.electron` toolkit bridge in
+// HTOO-697, as the template did in HTOO-54 (nothing read it), so the probe is
+// the app's own bridge name. Pass `bridge` only if the app renames window.api.
 export async function getMainWindow(electronApp, { bridge = 'api' } = {}) {
   let page = null
   for (let i = 0; i < 120 && !page; i++) {
     for (const w of electronApp.windows()) {
-      const isMain = await w
-        .evaluate((b) => !!(window.electron || window[b]), bridge)
-        .catch(() => false)
+      const isMain = await w.evaluate((b) => !!window[b], bridge).catch(() => false)
       if (isMain) {
         page = w
         break

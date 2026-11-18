@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import type {
   Deck,
   DeckExportResult,
@@ -100,5 +99,10 @@ const api: TarotApi = {
 
 // We always run with contextIsolation: true (the BrowserWindow default), so the
 // non-isolated fallback some templates ship with is dead code here.
-contextBridge.exposeInMainWorld('electron', electronAPI)
+//
+// `api` is the ONLY name on the bridge (HTOO-697). The @electron-toolkit
+// `electronAPI` bridge was exposed here as `window.electron` and nothing read
+// it. It gave the renderer raw `ipcRenderer.on` (which hands over the
+// IpcRendererEvent), send/invoke/sendSync on any channel, and a copy of the
+// whole `process.env`. `preload.test.ts` pins this.
 contextBridge.exposeInMainWorld('api', api)
