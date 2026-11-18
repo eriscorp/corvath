@@ -45,7 +45,7 @@ describe('Windows signing in release.yml (HTOO-517)', () => {
     expect(WORKFLOW).not.toMatch(/uses: sslcom\/esigner-codesign@/)
     expect(WORKFLOW).not.toMatch(/CodeSignTool\.bat|jdk-11/)
     expect(step('Set up Java 17 for CodeSignTool')).toMatch(
-      /uses: actions\/setup-java@v5\n\s+with:\n\s+distribution: temurin\n\s+java-version: '17'/
+      /uses: actions\/setup-java@[0-9a-f]{40} # v5\.\d+\.\d+\n\s+with:\n\s+distribution: temurin\n\s+java-version: '17'/
     )
     expect(step('Sign installer + portable exe')).toContain(
       "Join-Path $env:JAVA_HOME 'bin/java.exe'"
@@ -56,9 +56,10 @@ describe('Windows signing in release.yml (HTOO-517)', () => {
     // An unpinned download can change the eSigner protocol under a release, and
     // without -output_dir_path CodeSignTool asks whether to replace the input
     // and waits until the job times out.
-    const sign = step('Sign installer + portable exe')
-    expect(sign).toContain("CODESIGNTOOL_VERSION: '1.3.2'")
-    expect(sign).toContain('-output_dir_path=')
+    // The version is pinned in the fetch step, which verifies the archive
+    // before the sign step reads it (HTOO-692).
+    expect(step('Fetch and verify CodeSignTool')).toContain("CODESIGNTOOL_VERSION: '1.3.2'")
+    expect(step('Sign installer + portable exe')).toContain('-output_dir_path=')
   })
 
   it('signs both Windows artifacts in one step, and reads each signature back', () => {
@@ -73,10 +74,11 @@ describe('Windows signing in release.yml (HTOO-517)', () => {
     expect(sign).toContain('CodeSignTool wrote no signed file')
   })
 
-  it('guards both signing steps on the same probe, so they run together or not at all', () => {
+  it('guards the three signing steps on the same probe, so they run together or not at all', () => {
     expect(step('Set up Java 17 for CodeSignTool')).toContain(GUARD)
+    expect(step('Fetch and verify CodeSignTool')).toContain(GUARD)
     expect(step('Sign installer + portable exe')).toContain(GUARD)
-    expect(WORKFLOW.split(GUARD)).toHaveLength(3)
+    expect(WORKFLOW.split(GUARD)).toHaveLength(4)
     // A step `if:` cannot read `secrets`, so the probe reads the secret through
     // its env, and warns when there is none.
     const probe = step('Check for signing credentials')
@@ -89,11 +91,13 @@ describe('Windows signing in release.yml (HTOO-517)', () => {
     const at = (name) => WORKFLOW.indexOf(`- name: ${name}`)
     const fuses = at('Verify Electron fuses')
     const java = at('Set up Java 17 for CodeSignTool')
+    const fetch = at('Fetch and verify CodeSignTool')
     const sign = at('Sign installer + portable exe')
     const upload = at('Upload Windows artifacts')
     expect(fuses).toBeGreaterThan(-1)
     expect(fuses).toBeLessThan(java)
-    expect(java).toBeLessThan(sign)
+    expect(java).toBeLessThan(fetch)
+    expect(fetch).toBeLessThan(sign)
     expect(sign).toBeLessThan(upload)
     const uploadStep = step('Upload Windows artifacts')
     expect(uploadStep).toContain('dist/*-setup.exe')

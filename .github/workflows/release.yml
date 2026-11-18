@@ -39,12 +39,17 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Read by default (HTOO-692). Only the `release` job, which publishes the
+# GitHub Release, has `contents: write`. A build job runs third-party actions
+# and the signing tool, so it gets no token that can change the repository.
 permissions:
-  contents: write
+  contents: read
 
-# Every action here runs on Node 24 natively: checkout@v7, setup-node@v7,
-# setup-java@v5, upload-artifact@v7, download-artifact@v8 and
-# softprops/action-gh-release@v3.
+# Every action is pinned to a full commit SHA, with its version in a comment
+# (HTOO-692): a tag can be moved to other code, a SHA cannot. A bump reads the
+# comment, resolves the new tag's SHA, and changes both. All are native Node 24.
+# No checkout keeps its credentials (`persist-credentials: false`): no later
+# step pushes, and a kept token is one that any later step could read.
 #
 # No FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 env. It was here for one holdout,
 # `sslcom/esigner-codesign` (it declares `using: node20`). That action is gone:
@@ -65,8 +70,10 @@ jobs:
 
     steps:
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -107,7 +114,7 @@ jobs:
       # the retry is the part that pays. The cache stays because every house app
       # has the same steps (the template's 4151b14).
       - name: Cache the Electron binary
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/electron-cache
           key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -148,8 +155,10 @@ jobs:
 
     steps:
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -158,7 +167,7 @@ jobs:
       # the reasons there: `runner.temp` and the two step-level placements are
       # necessary, not style.
       - name: Cache the Electron binary
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/electron-cache
           key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -243,12 +252,12 @@ jobs:
       #
       # GUARDED, unlike the template: with no ES_* secrets, corvath warns and
       # ships unsigned rather than failing (the backlog's "Windows code signing"
-      # row). Both steps carry the SAME condition, so they run together or not
-      # at all. Remove the guard when the secrets exist, so a run without them
+      # row). The three signing steps carry the SAME condition, so they run
+      # together or not at all. Remove the guard when the secrets exist, so a run without them
       # fails instead of publishing unsigned.
       - name: Set up Java 17 for CodeSignTool
         if: steps.signing.outputs.enabled == 'true'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: '17'
@@ -273,6 +282,29 @@ jobs:
       #
       # CodeSignTool can print an error and still exit 0, and write no file. Thus
       # the step reads each signature back and requires the status `Valid`.
+      #
+      # The tool gets every eSigner secret, so it is verified before it is
+      # expanded, in a step that has no secrets (HTOO-692). The digest is of the
+      # exact archive: a new version needs a new digest, on purpose. GitHub
+      # publishes no digest for this asset; this one was measured on 2026-11-17
+      # (214 673 784 bytes, the asset's size on the release, last replaced
+      # 2025-05-09). The `if:` reads the probe's output, not a secret, so this
+      # step can share the guard and still hold no secret.
+      - name: Fetch and verify CodeSignTool
+        if: steps.signing.outputs.enabled == 'true'
+        shell: pwsh
+        env:
+          CODESIGNTOOL_VERSION: '1.3.2'
+          CODESIGNTOOL_SHA256: '4afc32e8b7f79bbe1de7e4e7049aaad4e0f754357613b9bbec0e3052f06fd36b'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = "CodeSignTool-v$env:CODESIGNTOOL_VERSION-windows.zip"
+          $url = "https://github.com/SSLcom/CodeSignTool/releases/download/v$env:CODESIGNTOOL_VERSION/$archive"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP/$archive" -UseBasicParsing
+          $hash = (Get-FileHash -Algorithm SHA256 "$env:RUNNER_TEMP/$archive").Hash.ToLowerInvariant()
+          if ($hash -ne $env:CODESIGNTOOL_SHA256) { throw "CodeSignTool archive digest $hash is not the pinned $env:CODESIGNTOOL_SHA256" }
+          Expand-Archive -Path "$env:RUNNER_TEMP/$archive" -DestinationPath "$env:RUNNER_TEMP/codesigntool" -Force
+
       - name: Sign installer + portable exe (SSL.com eSigner)
         if: steps.signing.outputs.enabled == 'true'
         shell: pwsh
@@ -281,19 +313,14 @@ jobs:
           ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
           ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
           ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
-          CODESIGNTOOL_VERSION: '1.3.2'
         run: |
           $ErrorActionPreference = 'Stop'
           $files = @(
             "${{ github.workspace }}/dist/${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}-setup.exe",
             "${{ github.workspace }}/dist/${{ steps.pkg.outputs.name }}-${{ steps.pkg.outputs.version }}-portable.exe"
           )
-          $archive = "CodeSignTool-v$env:CODESIGNTOOL_VERSION-windows.zip"
-          $url = "https://github.com/SSLcom/CodeSignTool/releases/download/v$env:CODESIGNTOOL_VERSION/$archive"
-          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP/$archive" -UseBasicParsing
-          Expand-Archive -Path "$env:RUNNER_TEMP/$archive" -DestinationPath "$env:RUNNER_TEMP/codesigntool" -Force
           $jar = Get-ChildItem "$env:RUNNER_TEMP/codesigntool" -Recurse -Filter 'code_sign_tool-*.jar' | Select-Object -First 1
-          if (-not $jar) { throw "no code_sign_tool jar in $archive" }
+          if (-not $jar) { throw "no code_sign_tool jar in the verified CodeSignTool archive" }
           $toolDir = $jar.Directory.Parent.FullName
           $java = Join-Path $env:JAVA_HOME 'bin/java.exe'
           & $java -version
@@ -317,7 +344,7 @@ jobs:
           }
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows
           # Both, and `if-no-files-found: error` now covers both -- the setup exe
@@ -344,8 +371,10 @@ jobs:
 
     steps:
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -354,7 +383,7 @@ jobs:
       # the reasons there: `runner.temp` and the two step-level placements are
       # necessary, not style.
       - name: Cache the Electron binary
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/electron-cache
           key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -413,7 +442,7 @@ jobs:
         run: npm run verify:fuses -- dist/mac-universal/Corvath.app
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-dmg
           path: dist/*.dmg
@@ -426,8 +455,10 @@ jobs:
 
     steps:
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -436,7 +467,7 @@ jobs:
       # the reasons there: `runner.temp` and the two step-level placements are
       # necessary, not style.
       - name: Cache the Electron binary
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/electron-cache
           key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -468,7 +499,7 @@ jobs:
         run: npm run verify:fuses -- dist/linux-unpacked/corvath
 
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-packages
           path: |
@@ -481,15 +512,19 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [build-windows, build-mac, build-linux]
     if: github.ref_type == 'tag'
+    permissions:
+      contents: write
 
     steps:
       # Checkout (the release job otherwise only downloads artifacts) so the
       # CHANGELOG + extract script are on disk.
       # Depth 1 (the default) is deliberate — see the CHECKOUT DEPTH note at the top.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: artifacts
 
@@ -499,7 +534,7 @@ jobs:
         run: node scripts/changelog-extract.mjs "${{ github.ref_name }}" > RELEASE_NOTES.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           files: |
             artifacts/**/*-setup.exe
