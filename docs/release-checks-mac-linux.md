@@ -188,6 +188,14 @@ The November round branch, `chore/november-round`, changes what A1 to A5 and B1 
 
 Owed on each machine (Sabrael runs these at the end of the release): A1 (1303 passed), A2 (23 passed and 4 skipped on Linux, 27 passed on macOS), A3, A4, A5 and B1. There is no tag this round: `v1.0.0` waits for HTOO-232.
 
+Done on macOS, by hand (2026-11-19): B1, B2 and B3 pass, by Sabrael at the machine on macOS 27.0.1 (Apple Silicon), at `a40537a`. B1 is recorded on HTOO-381. B2 and B3 go in Corvath's row of `macos-chrome.md` §10.
+
+Done, not owed again (Sabrael, 2026-11-19). A by-hand check that passed on a platform does not recur until its code changes:
+
+- **B1** on macOS. Run it again when the deck art, Electron or the packaging changes.
+- **B2** on macOS. It is a theme and chrome check. Run it again only when a theme, the title bar or the nav bar changes. `e2e/theme-switch.spec.js` and `chromeContrast.test.tsx` cover the themes after that.
+- **B3** on macOS. Run it again only when the application menu, its keys or the file pickers change.
+
 Done on Windows (2026-11-18, the branch tip), and not on this page:
 
 - **The gate:** `npm run validate`, 1303 passed. The build's preload requires only `electron`. Main keeps `@electron-toolkit/utils`, `fflate`, `zod` and `original-fs` external.
