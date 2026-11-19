@@ -186,7 +186,12 @@ The November round branch, `chore/november-round`, changes what A1 to A5 and B1 
 - **The release workflow pins every action to a SHA** (HTOO-692). The signing steps and the macOS notarization run only on a tag, so this page cannot check them.
 - **The portable check and the deck import limits** (HTOO-667, HTOO-693) are Windows-only and in the unit tests. Nothing on this page changes for them.
 
-Owed on each machine (Sabrael runs these at the end of the release): A1 (1303 passed), A2 (23 passed and 4 skipped on Linux, 27 passed on macOS), A3, A4, A5 and B1. There is no tag this round: `v1.0.0` waits for HTOO-232.
+Was owed on each machine: A1 (1303 passed), A2 (23 passed and 4 skipped on Linux, 27 passed on macOS), A3, A4, A5 and B1. There is no tag this round: `v1.0.0` waits for HTOO-232.
+
+Done on both machines (2026-11-19, at `a40537a`, Electron 45.3.4, after a clean `npm ci`). Every row passed with the expected count, and nothing is owed:
+
+- **Linux Mint 22.3:** A1 1303 passed and the preload requires only `electron`; A2 23 passed, 4 skipped (HTOO-553); A3 the real data folder unchanged (HTOO-543); A4 one fuse wire (HTOO-374); A5 running after 10 s with empty stderr, and B1 the deck art, by Sabrael at the machine (HTOO-381).
+- **macOS 27.0.1 (Apple Silicon):** A1 1303 passed and the preload requires only `electron`; A2 27 passed (HTOO-553); A3 the real data folder unchanged (HTOO-543); A4 two fuse wires on the universal build (HTOO-374); A5 running after 10 s with empty stderr, and B1 the deck art and the start, by Sabrael at the machine (HTOO-381).
 
 Done on macOS, by hand (2026-11-19): B1, B2 and B3 pass, by Sabrael at the machine on macOS 27.0.1 (Apple Silicon), at `a40537a`. B1 is recorded on HTOO-381. B2 and B3 go in Corvath's row of `macos-chrome.md` §10.
 
@@ -201,7 +206,7 @@ Done on Windows (2026-11-18, the branch tip), and not on this page:
 - **The gate:** `npm run validate`, 1303 passed. The build's preload requires only `electron`. Main keeps `@electron-toolkit/utils`, `fflate`, `zod` and `original-fs` external.
 - **e2e:** `npm run e2e`, 23 passed, 4 skipped (the macOS menu).
 - **A packaged `--win --dir` build:** the fuses verify, `app.asar` holds only `@electron-toolkit/utils`, `fflate` and `zod`, and the exe ran 40 s with its window, with another app's three portable variables set. Its session log had no portable line and no error.
-- **The audit:** `npm audit` 21 (5 moderate, 16 high), against 21 (11 moderate, 10 high) on `main` that day; `--omit=dev` 0. Each finding is the picomatch advisory GHSA-fc5q-39xc-vjpf, which has no fix, or the minimatch advisory under electron-builder (HTOO-631).
+- **The audit:** `npm audit` 21 (5 moderate, 16 high), against 21 (11 moderate, 10 high) on `main` that day; `--omit=dev` 0. Each finding is the picomatch advisory GHSA-fc5q-39xc-vjpf, which has no fix, or the minimatch advisory under electron-builder (HTOO-631). The picomatch advisory was withdrawn on 2026-11-18 (HTOO-694). On 2026-11-19 `npm audit` on `main` gives 6 moderate, all the minimatch advisory, and `--omit=dev` 0.
 
 Not on this page:
 
